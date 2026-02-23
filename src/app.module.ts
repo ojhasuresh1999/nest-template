@@ -6,19 +6,19 @@ import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AllConfigsList } from './config/all-configs-list';
-import { AuthModule } from './modules/auth/auth.module';
 import { FirebaseModule } from './common/modules/firebase.module';
 import { MailModule } from './common/modules/mail.module';
 import { S3Module } from './common/modules/s3.module';
+import { AllConfigsList } from './config/all-configs-list';
 import { AllConfigType } from './config/config.types';
+import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RoleModule } from './modules/role/role.module';
-import { UserModule } from './modules/user/user.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [

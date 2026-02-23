@@ -31,7 +31,7 @@ import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'notifications', version: '1' })
-export class NotificationController {
+export class NotificationUserController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()

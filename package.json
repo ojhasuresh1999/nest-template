@@ -22,13 +22,11 @@
     "prettier": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "doc": "npx @compodoc/compodoc -p tsconfig.json -s --port 3001 --watch -d ./documentation",
     "migrate": "cross-env NODE_ENV=development ts-node -r tsconfig-paths/register src/migrate.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate:module": "ts-node scripts/generate-module.ts"
   },
   "lint-staged": {
-    "{src,apps,libs,test}/**/*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+    "{src,apps,libs,test}/**/*.ts": ["eslint --fix", "prettier --write"]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.965.0",
@@ -127,19 +125,13 @@
     "typescript-eslint": "^8.20.0"
   },
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
+    "collectCoverageFrom": ["**/*.(t|j)s"],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
