@@ -1,0 +1,1624 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Module Test Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --dark-bg: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        --glass-bg: rgba(30, 41, 59, 0.7);
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background: var(--dark-bg);
+        color: #e2e8f0;
+        min-height: 100vh;
+      }
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 3px;
+      }
+      .message-bubble {
+        transition: all 0.2s ease;
+        animation: slideIn 0.3s ease-out;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .message-sent {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 18px 18px 4px 18px;
+      }
+      .message-received {
+        background: rgba(51, 65, 85, 0.8);
+        border-radius: 18px 18px 18px 4px;
+      }
+      .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 12px 16px;
+        background: rgba(51, 65, 85, 0.8);
+        border-radius: 18px;
+        width: fit-content;
+      }
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: #94a3b8;
+        border-radius: 50%;
+        animation: typingBounce 1.4s ease-in-out infinite;
+      }
+      .typing-dot:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes typingBounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-8px);
+        }
+      }
+      .status-online {
+        background-color: #10b981;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      }
+      .status-offline {
+        background-color: #6b7280;
+      }
+      .status-connecting {
+        background-color: #f59e0b;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .conversation-item {
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      .conversation-item:hover {
+        background: rgba(51, 65, 85, 0.8);
+        transform: translateX(4px);
+      }
+      .conversation-item.active {
+        background: rgba(99, 102, 241, 0.3);
+        border-left: 3px solid #818cf8;
+      }
+      .unread-badge {
+        animation: bounceIn 0.5s ease-out;
+      }
+      @keyframes bounceIn {
+        0% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .log-entry {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 11px;
+      }
+      .input-focus:focus {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+      }
+      .btn-primary {
+        background: var(--primary-gradient);
+        transition: all 0.2s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+      }
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div
+        class="glass-panel p-4 rounded-2xl mb-6 flex flex-wrap gap-4 items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
+          >
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">Chat Module Test Console</h1>
+            <p class="text-sm text-slate-400">Test WebSocket & REST chat features</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+            <div id="socketStatus" class="flex items-center gap-2">
+              <span id="socketStatusDot" class="w-2.5 h-2.5 rounded-full status-offline"></span>
+              <span id="socketStatusText" class="text-sm text-slate-400">Disconnected</span>
+            </div>
+          </div>
+          <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+            <div id="unreadBadge" class="text-2xl font-bold text-blue-400">0</div>
+            <div class="text-xs text-slate-400">Unread</div>
+          </div>
+          <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+            <div id="messageCount" class="text-2xl font-bold text-emerald-400">0</div>
+            <div class="text-xs text-slate-400">Messages</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Left Sidebar - Auth & Settings -->
+        <div class="lg:col-span-1 space-y-6">
+          <!-- Authentication -->
+          <div class="glass-panel p-6 rounded-2xl shadow-xl">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+              <svg
+                class="h-5 w-5 text-indigo-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+              Authentication
+              <span
+                id="authStatus"
+                class="ml-auto text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400"
+                >Not Logged In</span
+              >
+            </h2>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">API URL</label>
+                <input
+                  type="text"
+                  id="apiUrl"
+                  value="http://localhost:1967/api"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
+                />
+              </div>
+              <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 space-y-3">
+                <input
+                  type="email"
+                  id="email"
+                  placeholder="Email"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
+                />
+                <input
+                  type="password"
+                  id="password"
+                  placeholder="Password"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
+                />
+                <div class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    class="rounded border-slate-600 bg-slate-800 text-indigo-500"
+                  />
+                  <label for="rememberMe" class="text-xs text-slate-400"
+                    >Remember Me (30 days)</label
+                  >
+                </div>
+                <button
+                  onclick="performLogin()"
+                  id="loginBtn"
+                  class="w-full btn-primary text-white font-medium py-2 rounded-lg text-sm"
+                >
+                  Login
+                </button>
+              </div>
+              <div
+                id="userInfo"
+                class="hidden p-3 bg-slate-800/50 rounded-lg border border-slate-700/50"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold"
+                    id="userAvatar"
+                  >
+                    ?
+                  </div>
+                  <div>
+                    <div id="userName" class="text-sm font-medium text-white">-</div>
+                    <div id="userEmail" class="text-xs text-slate-400">-</div>
+                  </div>
+                </div>
+                <button
+                  onclick="logout()"
+                  class="mt-3 w-full text-xs text-red-400 hover:text-red-300 py-1"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Direct Message -->
+          <div class="glass-panel p-6 rounded-2xl shadow-xl">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+              <svg
+                class="h-5 w-5 text-emerald-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+              Start New Chat
+            </h2>
+            <div class="space-y-3">
+              <input
+                type="text"
+                id="receiverId"
+                placeholder="User ID to chat with"
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus font-mono"
+              />
+              <button
+                onclick="startConversation()"
+                id="startChatBtn"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+              >
+                Start Conversation
+              </button>
+            </div>
+          </div>
+
+          <!-- WebSocket Events Log -->
+          <div class="glass-panel p-6 rounded-2xl shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold flex items-center gap-2 text-white">
+                <svg
+                  class="h-5 w-5 text-purple-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                Event Log
+              </h2>
+              <button onclick="clearLog()" class="text-xs text-slate-400 hover:text-slate-300">
+                Clear
+              </button>
+            </div>
+            <div
+              id="eventLog"
+              class="h-48 overflow-y-auto custom-scrollbar bg-slate-900/50 rounded-lg p-3 font-mono text-xs space-y-1"
+            >
+              <div class="text-slate-500">[System] Waiting for connection...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle - Conversations List -->
+        <div class="lg:col-span-1">
+          <div class="glass-panel p-6 rounded-2xl shadow-xl h-full">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold flex items-center gap-2 text-white">
+                <svg
+                  class="h-5 w-5 text-blue-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+                  />
+                </svg>
+                Conversations
+              </h2>
+              <button
+                onclick="loadConversations()"
+                class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300"
+                title="Refresh"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              id="conversationList"
+              class="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar"
+            >
+              <div class="text-center text-slate-500 py-10">
+                <p class="text-sm">Login to see conversations</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right - Chat Area -->
+        <div class="lg:col-span-2">
+          <div
+            class="glass-panel rounded-2xl shadow-xl h-full flex flex-col"
+            style="min-height: 600px"
+          >
+            <!-- Chat Header -->
+            <div
+              id="chatHeader"
+              class="p-4 border-b border-slate-700/50 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  id="chatAvatar"
+                  class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold"
+                >
+                  ?
+                </div>
+                <div>
+                  <div id="chatName" class="font-medium text-white">Select a conversation</div>
+                  <div id="chatStatus" class="text-xs text-slate-400">
+                    Start by selecting a chat or entering a user ID
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  id="chatOnlineStatus"
+                  class="hidden px-2 py-1 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-400"
+                  >Online</span
+                >
+                <button
+                  onclick="loadConversationMessages()"
+                  class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300"
+                  title="Refresh messages"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messagesArea" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+              <div class="flex items-center justify-center h-full text-slate-500">
+                <div class="text-center">
+                  <svg
+                    class="mx-auto h-16 w-16 mb-4 opacity-20"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  <p class="text-sm">Select a conversation to start chatting</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="hidden px-4 pb-2">
+              <div class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="p-4 border-t border-slate-700/50">
+              <!-- File Preview (hidden by default) -->
+              <div
+                id="filePreview"
+                class="hidden mb-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div
+                      id="previewThumbnail"
+                      class="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center overflow-hidden"
+                    >
+                      <svg
+                        class="h-6 w-6 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p
+                        id="previewFileName"
+                        class="text-sm text-white font-medium truncate max-w-[200px]"
+                      >
+                        filename.jpg
+                      </p>
+                      <p id="previewFileSize" class="text-xs text-slate-400">2.5 MB</p>
+                    </div>
+                  </div>
+                  <button
+                    onclick="clearFilePreview()"
+                    class="p-1 hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <svg
+                      class="h-5 w-5 text-slate-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  id="fileCaption"
+                  placeholder="Add a caption..."
+                  class="mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none input-focus"
+                />
+              </div>
+
+              <div class="flex gap-3">
+                <!-- Hidden file input -->
+                <input
+                  type="file"
+                  id="fileInput"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                  class="hidden"
+                  onchange="handleFileSelect(event)"
+                />
+
+                <!-- Attachment button -->
+                <button
+                  onclick="document.getElementById('fileInput').click()"
+                  id="attachBtn"
+                  class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-slate-300 transition-colors disabled:opacity-50"
+                  disabled
+                  title="Attach file"
+                >
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                </button>
+
+                <input
+                  type="text"
+                  id="messageInput"
+                  placeholder="Type a message..."
+                  class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none input-focus"
+                  onkeydown="handleMessageKeydown(event)"
+                  oninput="handleTyping()"
+                  disabled
+                />
+                <button
+                  onclick="sendMessage()"
+                  id="sendBtn"
+                  class="btn-primary px-6 py-3 rounded-xl text-white font-medium flex items-center gap-2 disabled:opacity-50"
+                  disabled
+                >
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                    />
+                  </svg>
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div
+      id="toast"
+      class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50"
+    >
+      <div
+        class="bg-slate-800 border-l-4 border-emerald-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-3"
+      >
+        <p id="toastMsg" class="font-medium"></p>
+      </div>
+    </div>
+
+    <script>
+      // ==================== STATE ====================
+      let socket = null;
+      let currentUser = null;
+      let currentConversation = null;
+      let conversations = [];
+      let typingTimeout = null;
+      let isTyping = false;
+      let messageCount = 0;
+      let pendingMessages = new Set(); // Track tempIds of messages being sent
+      let selectedFile = null; // Track selected file for upload
+      let isUploading = false; // Track upload state
+
+      // ==================== CONFIG ====================
+      const getApiUrl = () => document.getElementById('apiUrl').value.replace(/\/$/, '');
+      const getAuthToken = () => localStorage.getItem('authToken') || '';
+      const getHeaders = () => ({
+        Authorization: `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json',
+      });
+
+      // ==================== INITIALIZATION ====================
+      document.addEventListener('DOMContentLoaded', () => {
+        // Load saved settings
+        document.getElementById('apiUrl').value =
+          localStorage.getItem('apiUrl') || 'http://localhost:1967/api';
+
+        const token = getAuthToken();
+        if (token) {
+          checkAuthAndConnect();
+        }
+      });
+
+      // ==================== AUTHENTICATION ====================
+      async function performLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('rememberMe').checked;
+        const btn = document.getElementById('loginBtn');
+        const originalText = btn.innerHTML;
+
+        if (!email || !password) {
+          showToast('Please enter email and password', 'error');
+          return;
+        }
+
+        try {
+          btn.disabled = true;
+          btn.innerHTML =
+            '<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block mr-2"></span>Logging in...';
+          addLog('Attempting login...', 'info');
+
+          localStorage.setItem('apiUrl', getApiUrl());
+
+          const res = await axios.post(`${getApiUrl()}/auth/login`, {
+            email,
+            password,
+            rememberMe,
+          });
+
+          const data = res.data?.data;
+          const token = data?.accessToken;
+
+          if (token) {
+            localStorage.setItem('authToken', token);
+            currentUser = data.user || { email };
+
+            updateAuthUI(true);
+            addLog('Login successful!', 'success');
+            showToast('Login Successful!', 'success');
+
+            document.getElementById('password').value = '';
+
+            // Connect to WebSocket
+            connectSocket();
+
+            // Load conversations
+            loadConversations();
+          }
+        } catch (error) {
+          console.error(error);
+          addLog('Login failed: ' + (error.response?.data?.message || error.message), 'error');
+          showToast(error.response?.data?.message || 'Login Failed', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+
+      async function checkAuthAndConnect() {
+        try {
+          // Verify token is valid by fetching user profile
+          const res = await axios.get(`${getApiUrl()}/users/my-profile`, { headers: getHeaders() });
+          currentUser = res.data?.data;
+          updateAuthUI(true);
+          connectSocket();
+          loadConversations();
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('authToken');
+          updateAuthUI(false);
+        }
+      }
+
+      function logout() {
+        localStorage.removeItem('authToken');
+        currentUser = null;
+        currentConversation = null;
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+        updateAuthUI(false);
+        updateSocketUI('Disconnected', 'offline');
+        document.getElementById('conversationList').innerHTML =
+          '<div class="text-center text-slate-500 py-10"><p class="text-sm">Login to see conversations</p></div>';
+        document.getElementById('messagesArea').innerHTML =
+          '<div class="flex items-center justify-center h-full text-slate-500"><div class="text-center"><svg class="mx-auto h-16 w-16 mb-4 opacity-20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><p class="text-sm">Select a conversation to start chatting</p></div></div>';
+        addLog('Logged out', 'info');
+        showToast('Logged out', 'info');
+      }
+
+      function updateAuthUI(isLoggedIn) {
+        const authStatus = document.getElementById('authStatus');
+        const userInfo = document.getElementById('userInfo');
+
+        if (isLoggedIn && currentUser) {
+          authStatus.textContent = 'Logged In';
+          authStatus.className =
+            'ml-auto text-xs px-2 py-0.5 rounded bg-emerald-900/50 text-emerald-400';
+
+          userInfo.classList.remove('hidden');
+          document.getElementById('userName').textContent =
+            currentUser.fullName || currentUser.firstName || 'User';
+          document.getElementById('userEmail').textContent = currentUser.email || '';
+          document.getElementById('userAvatar').textContent = (currentUser.firstName ||
+            currentUser.email ||
+            '?')[0].toUpperCase();
+        } else {
+          authStatus.textContent = 'Not Logged In';
+          authStatus.className = 'ml-auto text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400';
+          userInfo.classList.add('hidden');
+        }
+      }
+
+      // ==================== WEBSOCKET ====================
+      function connectSocket() {
+        if (socket) {
+          socket.disconnect();
+        }
+
+        const wsUrl = getApiUrl()
+          .replace('/api', '')
+          .replace('http', 'ws')
+          .replace(':1967', ':1967');
+        const httpUrl = getApiUrl().replace('/api', '');
+
+        addLog(`Connecting to WebSocket at ${httpUrl}/chat...`, 'info');
+        updateSocketUI('Connecting...', 'connecting');
+
+        socket = io(`${httpUrl}/chat`, {
+          transports: ['websocket', 'polling'],
+          auth: {
+            token: getAuthToken(),
+          },
+          extraHeaders: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+        });
+
+        // Connection events
+        socket.on('connect', () => {
+          addLog('✅ WebSocket connected: ' + socket.id, 'success');
+          updateSocketUI('Connected', 'online');
+          showToast('WebSocket Connected!', 'success');
+        });
+
+        socket.on('disconnect', (reason) => {
+          addLog('❌ WebSocket disconnected: ' + reason, 'error');
+          updateSocketUI('Disconnected', 'offline');
+        });
+
+        socket.on('connect_error', (error) => {
+          addLog('⚠️ Connection error: ' + error.message, 'error');
+          updateSocketUI('Error', 'offline');
+        });
+
+        socket.on('error', (error) => {
+          addLog('⚠️ Socket error: ' + JSON.stringify(error), 'error');
+        });
+
+        // Chat events
+        socket.on('receive_message', (message) => {
+          const senderId = message.sender?._id || message.sender;
+          const isOwnMessage = senderId === currentUser?._id;
+
+          // Skip if this is our own message (we already added it optimistically)
+          // Update the temp message if we have a tempId match
+          if (isOwnMessage) {
+            if (message.tempId && pendingMessages.has(message.tempId)) {
+              // Update the temporary message with the real message data
+              const tempEl = document.querySelector(`[data-message-id="${message.tempId}"]`);
+              if (tempEl) {
+                tempEl.setAttribute('data-message-id', message._id);
+                // Update status icon to 'sent'
+                const statusContainer = tempEl.querySelector('.flex.items-center.justify-end');
+                if (statusContainer) {
+                  const iconEl = statusContainer.querySelector('svg');
+                  if (iconEl) {
+                    iconEl.outerHTML = getStatusIcon('sent');
+                  }
+                }
+              }
+              pendingMessages.delete(message.tempId);
+              addLog(`✅ Message confirmed: ${message._id}`, 'success');
+            }
+            return; // Don't append our own messages again
+          }
+
+          addLog(
+            `📬 Message received from ${message.sender?.fullName || message.sender?._id}`,
+            'receive',
+          );
+          messageCount++;
+          document.getElementById('messageCount').textContent = messageCount;
+
+          if (currentConversation && message.conversationId === currentConversation._id) {
+            appendMessage(message, false);
+            markConversationAsRead(currentConversation._id);
+          }
+
+          loadConversations();
+          showToast(`New message from ${message.sender?.fullName || 'Unknown'}`, 'info');
+        });
+
+        socket.on('message_sent', (data) => {
+          addLog('✉️ Message sent confirmation', 'success');
+        });
+
+        socket.on('message_error', (error) => {
+          addLog('❌ Message error: ' + error.error, 'error');
+          showToast('Failed to send message: ' + error.error, 'error');
+        });
+
+        socket.on('user_typing', (data) => {
+          addLog(
+            `⌨️ User ${data.userId} is ${data.isTyping ? 'typing' : 'stopped typing'}`,
+            'info',
+          );
+          if (currentConversation && data.conversationId === currentConversation._id) {
+            document.getElementById('typingIndicator').classList.toggle('hidden', !data.isTyping);
+          }
+        });
+
+        socket.on('messages_read', (data) => {
+          addLog(`👁️ Messages read by ${data.readBy}`, 'info');
+          updateMessageStatuses(data.messageIds, 'read');
+        });
+
+        socket.on('user_online', (data) => {
+          addLog(`🟢 User ${data.userId} is online`, 'info');
+          updateUserOnlineStatus(data.userId, true);
+        });
+
+        socket.on('user_offline', (data) => {
+          addLog(`⚫ User ${data.userId} is offline`, 'info');
+          updateUserOnlineStatus(data.userId, false);
+        });
+
+        socket.on('conversation_updated', (data) => {
+          addLog(`📝 Conversation ${data.conversationId} updated`, 'info');
+          loadConversations();
+        });
+
+        socket.on('unread_count', (data) => {
+          addLog(`🔔 Unread count updated: ${data.unreadCount}`, 'info');
+          document.getElementById('unreadBadge').textContent = data.unreadCount;
+        });
+      }
+
+      function updateSocketUI(status, state) {
+        const dot = document.getElementById('socketStatusDot');
+        const text = document.getElementById('socketStatusText');
+
+        text.textContent = status;
+        dot.className = 'w-2.5 h-2.5 rounded-full status-' + state;
+      }
+
+      // ==================== CONVERSATIONS ====================
+      async function loadConversations() {
+        if (!getAuthToken()) return;
+
+        try {
+          const res = await axios.get(`${getApiUrl()}/chat/conversations?limit=50`, {
+            headers: getHeaders(),
+          });
+          conversations = res.data?.data?.conversations || [];
+
+          const totalUnread = res.data?.data?.totalUnread || 0;
+          document.getElementById('unreadBadge').textContent = totalUnread;
+
+          renderConversations();
+        } catch (error) {
+          console.error('Failed to load conversations:', error);
+          addLog(
+            'Failed to load conversations: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+        }
+      }
+
+      function renderConversations() {
+        const list = document.getElementById('conversationList');
+
+        if (conversations.length === 0) {
+          list.innerHTML = `
+            <div class="text-center text-slate-500 py-10">
+              <svg class="mx-auto h-12 w-12 mb-3 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p class="text-sm">No conversations yet</p>
+              <p class="text-xs text-slate-600 mt-1">Start a new chat above</p>
+            </div>`;
+          return;
+        }
+
+        list.innerHTML = conversations
+          .map((conv) => {
+            const other =
+              conv.otherParticipant || conv.participants?.find((p) => p._id !== currentUser?._id);
+            const name = other?.fullName || other?.firstName || 'Unknown';
+            const initial = name[0]?.toUpperCase() || '?';
+            const lastMessage = conv.lastMessage || 'Start a conversation';
+            const time = conv.lastMessageAt ? moment(conv.lastMessageAt).fromNow() : '';
+            const unread = conv.unreadCount || 0;
+            const isActive = currentConversation?._id === conv._id;
+            const isOnline = conv.isOnline;
+
+            return `
+            <div class="conversation-item p-3 rounded-lg ${isActive ? 'active' : ''}" onclick="selectConversation('${conv._id}')">
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">${initial}</div>
+                  <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-800 ${isOnline ? 'status-online' : 'status-offline'}"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-white text-sm truncate">${name}</span>
+                    <span class="text-xs text-slate-400">${time}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <p class="text-xs text-slate-400 truncate pr-2">${lastMessage.substring(0, 30)}${lastMessage.length > 30 ? '...' : ''}</p>
+                    ${unread > 0 ? `<span class="unread-badge bg-indigo-500 text-white text-xs rounded-full px-2 py-0.5 font-medium">${unread}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          })
+          .join('');
+      }
+
+      async function selectConversation(conversationId) {
+        try {
+          const res = await axios.get(`${getApiUrl()}/chat/conversations/${conversationId}`, {
+            headers: getHeaders(),
+          });
+          currentConversation = res.data?.data;
+
+          const other = currentConversation.participants?.find((p) => p._id !== currentUser?._id);
+          updateChatHeader(other);
+
+          // Join conversation room
+          if (socket) {
+            socket.emit('join_conversation', { conversationId });
+          }
+
+          // Enable input
+          document.getElementById('messageInput').disabled = false;
+          document.getElementById('sendBtn').disabled = false;
+          document.getElementById('attachBtn').disabled = false;
+
+          // Mark as read
+          markConversationAsRead(conversationId);
+
+          // Load messages
+          loadConversationMessages();
+
+          // Update conversation list to show active state
+          renderConversations();
+
+          addLog(`Selected conversation: ${conversationId}`, 'info');
+        } catch (error) {
+          console.error('Failed to select conversation:', error);
+          addLog(
+            'Failed to select conversation: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+        }
+      }
+
+      async function startConversation() {
+        const receiverId = document.getElementById('receiverId').value.trim();
+
+        if (!receiverId) {
+          showToast('Please enter a user ID', 'error');
+          return;
+        }
+
+        try {
+          const res = await axios.post(
+            `${getApiUrl()}/chat/conversations/user/${receiverId}`,
+            {},
+            { headers: getHeaders() },
+          );
+          const conversation = res.data?.data;
+
+          if (conversation) {
+            currentConversation = conversation;
+            addLog(`Started/retrieved conversation: ${conversation._id}`, 'success');
+            showToast('Conversation started!', 'success');
+
+            loadConversations();
+            selectConversation(conversation._id);
+          }
+        } catch (error) {
+          console.error('Failed to start conversation:', error);
+          addLog(
+            'Failed to start conversation: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+          showToast(error.response?.data?.message || 'Failed to start conversation', 'error');
+        }
+      }
+
+      function updateChatHeader(user) {
+        if (!user) return;
+
+        const name = user.fullName || user.firstName || 'Unknown';
+        document.getElementById('chatAvatar').textContent = name[0]?.toUpperCase() || '?';
+        document.getElementById('chatName').textContent = name;
+        document.getElementById('chatStatus').textContent = user.email || '';
+
+        // Check online status
+        checkOnlineStatus(user._id);
+      }
+
+      async function checkOnlineStatus(userId) {
+        try {
+          const res = await axios.get(`${getApiUrl()}/chat/online-status/${userId}`, {
+            headers: getHeaders(),
+          });
+          const isOnline = res.data?.data?.isOnline;
+
+          const statusEl = document.getElementById('chatOnlineStatus');
+          if (isOnline) {
+            statusEl.textContent = 'Online';
+            statusEl.className =
+              'px-2 py-1 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-400';
+          } else {
+            statusEl.textContent = 'Offline';
+            statusEl.className =
+              'px-2 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-400';
+          }
+          statusEl.classList.remove('hidden');
+        } catch (error) {
+          console.error('Failed to check online status:', error);
+        }
+      }
+
+      function updateUserOnlineStatus(userId, isOnline) {
+        // Update in conversations list
+        const conv = conversations.find((c) => {
+          const other =
+            c.otherParticipant || c.participants?.find((p) => p._id !== currentUser?._id);
+          return other?._id === userId;
+        });
+
+        if (conv) {
+          conv.isOnline = isOnline;
+          renderConversations();
+        }
+
+        // Update chat header if this is the current conversation
+        if (currentConversation) {
+          const other = currentConversation.participants?.find((p) => p._id !== currentUser?._id);
+          if (other?._id === userId) {
+            const statusEl = document.getElementById('chatOnlineStatus');
+            if (isOnline) {
+              statusEl.textContent = 'Online';
+              statusEl.className =
+                'px-2 py-1 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-400';
+            } else {
+              statusEl.textContent = 'Offline';
+              statusEl.className =
+                'px-2 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-400';
+            }
+          }
+        }
+      }
+
+      // ==================== MESSAGES ====================
+      async function loadConversationMessages() {
+        if (!currentConversation) return;
+
+        try {
+          const res = await axios.get(
+            `${getApiUrl()}/chat/conversations/${currentConversation._id}/messages?limit=50`,
+            { headers: getHeaders() },
+          );
+          const messages = res.data?.data?.messages || [];
+
+          renderMessages(messages);
+
+          // Scroll to bottom
+          const area = document.getElementById('messagesArea');
+          area.scrollTop = area.scrollHeight;
+
+          addLog(`Loaded ${messages.length} messages`, 'info');
+        } catch (error) {
+          console.error('Failed to load messages:', error);
+          addLog(
+            'Failed to load messages: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+        }
+      }
+
+      function renderMessages(messages) {
+        const area = document.getElementById('messagesArea');
+
+        if (messages.length === 0) {
+          area.innerHTML = `
+            <div class="flex items-center justify-center h-full text-slate-500">
+              <div class="text-center">
+                <svg class="mx-auto h-16 w-16 mb-4 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p class="text-sm">No messages yet</p>
+                <p class="text-xs text-slate-600 mt-1">Say hello!</p>
+              </div>
+            </div>`;
+          return;
+        }
+
+        area.innerHTML = messages
+          .map((msg) => {
+            const isSent = msg.sender?._id === currentUser?._id || msg.sender === currentUser?._id;
+            return createMessageHTML(msg, isSent);
+          })
+          .join('');
+
+        messageCount = messages.length;
+        document.getElementById('messageCount').textContent = messageCount;
+      }
+
+      function createMessageHTML(msg, isSent) {
+        const time = moment(msg.createdAt).format('h:mm A');
+        const statusIcon = getStatusIcon(msg.status);
+        const messageType = msg.messageType || 'text';
+
+        // Render based on message type
+        let contentHTML = '';
+
+        if (messageType === 'image') {
+          // Image message
+          const imageUrl = msg.metadata?.fileUrl || msg.content;
+          const caption = msg.metadata?.caption;
+          contentHTML = `
+            <div class="mb-2">
+              <img src="${escapeHtml(imageUrl)}" alt="Shared image" 
+                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                style="max-height: 300px;"
+                onclick="window.open('${escapeHtml(imageUrl)}', '_blank')" />
+            </div>
+            ${caption ? `<p class="text-white text-sm">${escapeHtml(caption)}</p>` : ''}
+          `;
+        } else if (messageType === 'file') {
+          // File message
+          const fileUrl = msg.metadata?.fileUrl || msg.content;
+          const fileName = msg.metadata?.fileName || 'File';
+          const caption = msg.metadata?.caption;
+          contentHTML = `
+            <div class="flex items-center gap-3 p-2 bg-slate-700/50 rounded-lg mb-2">
+              <div class="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center">
+                <svg class="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm text-white font-medium truncate">${escapeHtml(fileName)}</p>
+                <a href="${escapeHtml(fileUrl)}" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300">Download</a>
+              </div>
+            </div>
+            ${caption ? `<p class="text-white text-sm">${escapeHtml(caption)}</p>` : ''}
+          `;
+        } else {
+          // Text message (default)
+          contentHTML = `<p class="text-white text-sm">${escapeHtml(msg.content)}</p>`;
+        }
+
+        return `
+          <div class="flex ${isSent ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[70%] message-bubble ${isSent ? 'message-sent' : 'message-received'} px-4 py-2" data-message-id="${msg._id}">
+              ${!isSent ? `<div class="text-xs font-medium text-indigo-300 mb-1">${msg.sender?.fullName || 'Unknown'}</div>` : ''}
+              ${contentHTML}
+              <div class="flex items-center justify-end gap-1 mt-1">
+                <span class="text-xs ${isSent ? 'text-indigo-200' : 'text-slate-400'}">${time}</span>
+                ${isSent ? statusIcon : ''}
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function appendMessage(msg, isSent) {
+        const area = document.getElementById('messagesArea');
+
+        // Remove empty state if present
+        if (area.querySelector('.text-slate-500')) {
+          area.innerHTML = '';
+        }
+
+        const div = document.createElement('div');
+        div.innerHTML = createMessageHTML(msg, isSent);
+        area.appendChild(div.firstElementChild);
+
+        // Scroll to bottom
+        area.scrollTop = area.scrollHeight;
+      }
+
+      function getStatusIcon(status) {
+        switch (status) {
+          case 'sent':
+            // Single gray tick ✓
+            return `<svg class="h-4 w-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>`;
+          case 'delivered':
+            // Double gray tick ✓✓
+            return `<svg class="h-4 w-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M1.5 12.5l4 4L15.5 6.5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l4 4L21.5 6.5" />
+            </svg>`;
+          case 'read':
+            // Double blue tick ✓✓ (read)
+            return `<svg class="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M1.5 12.5l4 4L15.5 6.5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l4 4L21.5 6.5" />
+            </svg>`;
+          case 'sending':
+            // Clock icon for sending state
+            return `<svg class="h-4 w-4 text-slate-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" d="M12 7v5l3 3" />
+            </svg>`;
+          default:
+            // Clock icon for pending
+            return `<svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" d="M12 7v5l3 3" />
+            </svg>`;
+        }
+      }
+
+      function updateMessageStatuses(messageIds, status) {
+        messageIds.forEach((id) => {
+          const el = document.querySelector(`[data-message-id="${id}"]`);
+          if (el) {
+            const statusContainer = el.querySelector('.flex.items-center.justify-end');
+            if (statusContainer) {
+              const iconEl = statusContainer.querySelector('svg');
+              if (iconEl) {
+                iconEl.outerHTML = getStatusIcon(status);
+              }
+            }
+          }
+        });
+      }
+
+      async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+
+        // If there's a file selected, upload it
+        if (selectedFile) {
+          await uploadFile();
+          return;
+        }
+
+        if (!content || !currentConversation) return;
+
+        const tempId = 'temp-' + Date.now();
+        const other = currentConversation.participants?.find((p) => p._id !== currentUser?._id);
+
+        // Optimistic update
+        const tempMessage = {
+          _id: tempId,
+          content,
+          sender: currentUser,
+          createdAt: new Date(),
+          status: 'sending',
+        };
+        appendMessage(tempMessage, true);
+        pendingMessages.add(tempId); // Track this pending message
+        input.value = '';
+        messageCount++;
+        document.getElementById('messageCount').textContent = messageCount;
+
+        try {
+          // Send via WebSocket
+          if (socket && socket.connected) {
+            socket.emit('send_message', {
+              conversationId: currentConversation._id,
+              receiverId: other?._id,
+              content,
+              tempId,
+            });
+            addLog(`📤 Sent via WebSocket: "${content.substring(0, 30)}..."`, 'send');
+          } else {
+            // Fallback to REST API
+            await axios.post(
+              `${getApiUrl()}/chat/messages`,
+              {
+                conversationId: currentConversation._id,
+                receiverId: other?._id,
+                content,
+                tempId,
+              },
+              { headers: getHeaders() },
+            );
+            addLog(`📤 Sent via REST: "${content.substring(0, 30)}..."`, 'send');
+          }
+
+          // Stop typing indicator
+          stopTyping();
+        } catch (error) {
+          console.error('Failed to send message:', error);
+          addLog(
+            'Failed to send message: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+          showToast('Failed to send message', 'error');
+        }
+      }
+
+      function handleMessageKeydown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+
+      // ==================== TYPING INDICATORS ====================
+      function handleTyping() {
+        if (!socket || !currentConversation) return;
+
+        if (!isTyping) {
+          isTyping = true;
+          socket.emit('typing_start', { conversationId: currentConversation._id });
+        }
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          stopTyping();
+        }, 2000);
+      }
+
+      function stopTyping() {
+        if (socket && currentConversation && isTyping) {
+          socket.emit('typing_stop', { conversationId: currentConversation._id });
+          isTyping = false;
+        }
+      }
+
+      // ==================== READ RECEIPTS ====================
+      async function markConversationAsRead(conversationId) {
+        try {
+          await axios.patch(
+            `${getApiUrl()}/chat/conversations/${conversationId}/read`,
+            {},
+            { headers: getHeaders() },
+          );
+
+          // Also emit via WebSocket
+          if (socket) {
+            socket.emit('mark_read', { conversationId });
+          }
+
+          // Update local unread count
+          const conv = conversations.find((c) => c._id === conversationId);
+          if (conv) {
+            conv.unreadCount = 0;
+            renderConversations();
+          }
+        } catch (error) {
+          console.error('Failed to mark as read:', error);
+        }
+      }
+
+      // ==================== UTILITIES ====================
+      function addLog(message, type = 'info') {
+        const log = document.getElementById('eventLog');
+        const colors = {
+          info: 'text-slate-400',
+          success: 'text-emerald-400',
+          error: 'text-red-400',
+          receive: 'text-purple-400',
+          send: 'text-blue-400',
+        };
+        const time = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${colors[type]}`;
+        entry.innerHTML = `<span class="text-slate-600">[${time}]</span> ${escapeHtml(message)}`;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function clearLog() {
+        document.getElementById('eventLog').innerHTML =
+          '<div class="text-slate-500">[System] Log cleared</div>';
+      }
+
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        const border =
+          type === 'error'
+            ? 'border-red-500'
+            : type === 'info'
+              ? 'border-blue-500'
+              : 'border-emerald-500';
+
+        toastMsg.textContent = message;
+        toast.querySelector('div').className =
+          `bg-slate-800 border-l-4 ${border} text-white px-6 py-4 rounded shadow-2xl flex items-center gap-3`;
+        toast.classList.remove('translate-y-20', 'opacity-0');
+
+        setTimeout(() => {
+          toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+      }
+
+      function handleFileSelect(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file size (max 50MB)
+        const maxSize = 50 * 1024 * 1024;
+        if (file.size > maxSize) {
+          showToast('File too large. Maximum size is 50MB.', 'error');
+          event.target.value = '';
+          return;
+        }
+
+        selectedFile = file;
+
+        // Show preview
+        const preview = document.getElementById('filePreview');
+        const thumbnail = document.getElementById('previewThumbnail');
+        const fileName = document.getElementById('previewFileName');
+        const fileSize = document.getElementById('previewFileSize');
+
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+
+        // Show image thumbnail if it's an image
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            thumbnail.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover" />`;
+          };
+          reader.readAsDataURL(file);
+        } else if (file.type.startsWith('video/')) {
+          thumbnail.innerHTML = `
+            <svg class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>`;
+        } else {
+          thumbnail.innerHTML = `
+            <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>`;
+        }
+
+        preview.classList.remove('hidden');
+        addLog(`📎 File selected: ${file.name}`, 'info');
+      }
+
+      function clearFilePreview() {
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('filePreview').classList.add('hidden');
+        document.getElementById('fileCaption').value = '';
+        document.getElementById('previewThumbnail').innerHTML = `
+          <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>`;
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      async function uploadFile() {
+        if (!selectedFile || !currentConversation || isUploading) return;
+
+        const other = currentConversation.participants?.find((p) => p._id !== currentUser?._id);
+        if (!other) {
+          showToast('Cannot find recipient', 'error');
+          return;
+        }
+
+        isUploading = true;
+        const tempId = 'temp-file-' + Date.now();
+        const caption = document.getElementById('fileCaption').value.trim();
+        const isImage = selectedFile.type.startsWith('image/');
+
+        // Optimistic update
+        const tempMessage = {
+          _id: tempId,
+          content: caption || selectedFile.name,
+          messageType: isImage ? 'image' : 'file',
+          metadata: {
+            fileName: selectedFile.name,
+            caption: caption,
+            // Create temporary preview URL for images
+            fileUrl: isImage ? URL.createObjectURL(selectedFile) : null,
+          },
+          sender: currentUser,
+          createdAt: new Date(),
+          status: 'sending',
+        };
+        appendMessage(tempMessage, true);
+        pendingMessages.add(tempId);
+        messageCount++;
+        document.getElementById('messageCount').textContent = messageCount;
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('receiverId', other._id);
+        formData.append('conversationId', currentConversation._id);
+        if (caption) formData.append('caption', caption);
+        formData.append('tempId', tempId);
+
+        try {
+          addLog(`⬆️ Uploading file: ${selectedFile.name}...`, 'info');
+
+          const res = await axios.post(`${getApiUrl()}/chat/upload`, formData, {
+            headers: {
+              ...getHeaders(),
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          addLog(`✅ File uploaded: ${selectedFile.name}`, 'success');
+          showToast('File sent!', 'success');
+
+          // Update temp message with real data
+          const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+          if (tempEl && res.data?.data?.message) {
+            tempEl.setAttribute('data-message-id', res.data.data.message._id);
+            const statusContainer = tempEl.querySelector('.flex.items-center.justify-end');
+            if (statusContainer) {
+              const iconEl = statusContainer.querySelector('svg');
+              if (iconEl) {
+                iconEl.outerHTML = getStatusIcon('sent');
+              }
+            }
+          }
+          pendingMessages.delete(tempId);
+        } catch (error) {
+          console.error('Failed to upload file:', error);
+          addLog('❌ Upload failed: ' + (error.response?.data?.message || error.message), 'error');
+          showToast('Failed to upload file', 'error');
+
+          // Mark as failed
+          const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+          if (tempEl) {
+            tempEl.style.opacity = '0.5';
+          }
+        } finally {
+          isUploading = false;
+          clearFilePreview();
+          loadConversations();
+        }
+      }
+    </script>
+  </body>
+</html>

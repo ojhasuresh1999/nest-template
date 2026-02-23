@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  node:
+    build: .
+    container_name: consultly-node22
+    restart: unless-stopped
+    working_dir: /home/wtsadmin/myapp
+    volumes:
+      - ./:/home/wtsadmin/myapp
+    ports:
+      - "1979:1979"
+    networks:
+      - webskitters
+
+networks:
+  webskitters:
+    external: true
+    name: webskitters

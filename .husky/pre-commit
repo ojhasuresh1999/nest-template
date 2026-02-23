@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+BRANCH_NAME=$(git symbolic-ref --short HEAD || echo "master")
+VALID_BRANCH_REGEX="^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)\/[a-zA-Z0-9\-]+$"
+
+if [ "$BRANCH_NAME" != "master" ] && [ "$BRANCH_NAME" != "main" ] && [ "$BRANCH_NAME" != "develop" ]; then
+  if ! echo "$BRANCH_NAME" | grep -Eq "$VALID_BRANCH_REGEX"; then
+    echo "🚫 Invalid branch name: $BRANCH_NAME"
+    echo "Branch names must follow the pattern: <type>/<description>"
+    echo "Valid types: feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert"
+    echo "Example: feat/add-new-login-api"
+    exit 1
+  fi
+fi
+
+echo "Running lint-staged..."
+npx lint-staged

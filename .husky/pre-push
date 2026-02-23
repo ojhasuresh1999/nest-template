@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+echo "🚫 Checking for TypeScript errors..."
+npx tsc --noEmit
+
+echo "🏗️ Verifying build..."
+pnpm run build
