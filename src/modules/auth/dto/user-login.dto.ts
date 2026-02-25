@@ -1,42 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-  ValidateIf,
-} from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 /**
- * DTO for User Login — Phone + OTP or Email + OTP
+ * DTO for User Login — identifier (email/phone) + OTP
  *
- * OTP is sent via the `send-otp` API first.
+ * OTP is sent via the `send-otp` API first with purpose LOGIN_VERIFICATION.
  * Then this login endpoint verifies the OTP and returns auth tokens.
  */
 export class UserLoginDto {
   @ApiProperty({
-    example: 'suresh.webskitters@gmail.com',
-    description: 'User email address (provide either email or phone)',
-    required: false,
+    example: 'suresh.webskitters@gmail.com or +919876543210',
+    description: 'Email address or phone number (provide either)',
   })
-  @ValidateIf((o) => !o.phone)
-  @IsEmail()
-  @IsNotEmpty()
-  @Transform(({ value }) => value?.toLowerCase())
-  email?: string;
-
-  @ApiProperty({
-    example: '+919876543210',
-    description: 'User phone number (provide either email or phone)',
-    required: false,
-  })
-  @ValidateIf((o) => !o.email)
   @IsString()
   @IsNotEmpty()
-  phone?: string;
+  @Transform(({ value }) => value?.trim()?.toLowerCase())
+  identifier: string;
 
   @ApiProperty({
     example: '1234',

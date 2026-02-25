@@ -12,7 +12,7 @@ import { UserService } from './user.service';
 @Controller({ path: 'users', version: '1' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@Roles(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@Roles(UserRole.USER)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

@@ -6,6 +6,7 @@ import { synchronizeNameFields } from 'src/utils/utils.helper';
 import { PropData, SchemaWith } from '../../../common/decorators/schema.decorator';
 import { StatusEnum } from '../../../common/enums';
 import { autoSlugPlugin } from '../../../common/plugins/auto-slug.plugin';
+import { softDeletePlugin } from '../../../common/plugins/soft-delete.plugin';
 
 @SchemaWith({ collection: 'users' })
 export class User {
@@ -25,10 +26,10 @@ export class User {
   })
   slug: string;
 
-  @PropData({ required: true, unique: true, index: true })
+  @PropData({ required: false, unique: true, sparse: true, index: true })
   email: string;
 
-  @PropData({ required: true, unique: true, index: true })
+  @PropData({ required: false, unique: true, sparse: true, index: true })
   phone: string;
 
   @PropData({ required: false, default: '' })
@@ -121,6 +122,8 @@ UserSchema.plugin(autoSlugPlugin, {
   unique: true,
   updateOnChange: true,
 });
+
+UserSchema.plugin(softDeletePlugin, { deletedByField: 'deletedBy' });
 
 export type UserDocument = HydratedDocument<User> & {
   comparePassword(password: string): Promise<boolean>;

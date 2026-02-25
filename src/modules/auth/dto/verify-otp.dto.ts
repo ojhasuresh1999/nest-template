@@ -13,7 +13,7 @@ export class VerifyOtpDto {
   })
   @IsString()
   @Transform(({ value }) => {
-    return value?.toLowerCase();
+    return value?.trim()?.toLowerCase();
   })
   identifier: string;
 

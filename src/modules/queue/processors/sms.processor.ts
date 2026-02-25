@@ -162,9 +162,18 @@ export class SmsProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, error: Error) {
-    this.logger.error(
-      `❌ SMS Job [${job.id}] failed after ${job.attemptsMade} attempts: ${error.message}`,
-    );
+    const maxAttempts = job.opts.attempts || 5;
+    const isFinalAttempt = job.attemptsMade >= maxAttempts;
+
+    if (isFinalAttempt) {
+      this.logger.error(
+        `🚨 [DLQ] SMS Job [${job.id}] permanently failed | name=${job.name} | attempts=${job.attemptsMade} | error=${error.message} | data=${JSON.stringify(job.data)}`,
+      );
+    } else {
+      this.logger.warn(
+        `❌ SMS Job [${job.id}] failed (attempt ${job.attemptsMade}/${maxAttempts}): ${error.message}`,
+      );
+    }
   }
 
   @OnWorkerEvent('progress')

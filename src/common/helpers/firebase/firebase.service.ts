@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as firebaseAdmin from 'firebase-admin';
 import { AllConfigType } from '../../../config/config.types';
+import { CircuitBreakerService } from '../../circuit-breaker';
+import CircuitBreaker from 'opossum';
 
 export interface PushNotificationPayload {
   tokens: string[];
@@ -22,11 +24,21 @@ export class FirebaseService implements OnModuleInit {
   private readonly logger = new Logger(FirebaseService.name);
   private firebaseApp: firebaseAdmin.app.App | null = null;
   private isInitialized = false;
+  private breaker!: CircuitBreaker;
 
-  constructor(private readonly configService: ConfigService<AllConfigType>) {}
+  constructor(
+    private readonly configService: ConfigService<AllConfigType>,
+    private readonly cbService: CircuitBreakerService,
+  ) {}
 
   onModuleInit() {
     this.initializeFirebase();
+    this.breaker = this.cbService.create(
+      'firebase',
+      (msg: firebaseAdmin.messaging.MulticastMessage) =>
+        this.firebaseApp!.messaging().sendEachForMulticast(msg),
+      { timeout: 10000, resetTimeout: 20000 },
+    );
   }
 
   private initializeFirebase(): void {
@@ -117,7 +129,7 @@ export class FirebaseService implements OnModuleInit {
         },
       };
 
-      const response = await this.firebaseApp!.messaging().sendEachForMulticast(message);
+      const response = (await this.breaker.fire(message)) as firebaseAdmin.messaging.BatchResponse;
 
       const failedTokens: string[] = [];
       response.responses.forEach((resp, idx) => {

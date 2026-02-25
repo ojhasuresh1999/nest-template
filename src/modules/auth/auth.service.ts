@@ -38,27 +38,47 @@ export class AuthService {
     private readonly roleRepo: RoleRepository,
   ) {}
 
-  async register(dto: RegisterDto): Promise<{ expiresIn: number; otp?: string }> {
+  // ============================================================================
+  // Public Auth Methods
+  // ============================================================================
+
+  /**
+   * Register a new user with OTP verification and auto-login.
+   * - Verifies OTP internally (purpose: REGISTRATION)
+   * - Creates user with the correct identifier field (email or phone)
+   * - Marks the identifier as verified
+   * - Returns tokens + user data (auto-login)
+   */
+  async register(dto: RegisterDto, deviceInfo: DeviceInfo): Promise<LoginDataDto> {
+    const isEmail = dto.identifier.includes('@');
+    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
+
+    // Check for existing user
     const existingUser = await this.userRepo.findOne({
-      email: dto.email.toLowerCase(),
+      $or: [{ email: normalizedIdentifier }, { phone: normalizedIdentifier }],
       isDeleted: false,
     });
 
     if (existingUser) {
-      throw ApiError.conflict('Email already registered');
+      throw ApiError.conflict(
+        `User already registered with this ${isEmail ? 'email' : 'phone number'}`,
+      );
     }
 
-    const existingPhone = await this.userRepo.findOne({
-      phone: dto.phone,
-      isDeleted: false,
-    });
+    // Verify OTP internally
+    const otpVerification = await this.otpService.verifyOtp(
+      normalizedIdentifier,
+      dto.otp,
+      OtpPurpose.REGISTRATION,
+    );
 
-    if (existingPhone) {
-      throw ApiError.conflict('Phone number already registered');
+    if (!otpVerification.valid) {
+      throw ApiError.badRequest('Invalid OTP');
     }
 
+    // Validate role
     const role = await this.roleRepo.findOne(
-      { name: UserRole.USER, status: StatusEnum.ACTIVE },
+      { name: dto.role, status: StatusEnum.ACTIVE },
       { _id: 1 },
     );
 
@@ -66,109 +86,87 @@ export class AuthService {
       throw ApiError.notFound('Role not found');
     }
 
-    const user = await this.userRepo.create({
-      fullName: dto.fullName,
-      email: dto.email.toLowerCase(),
-      phone: dto.phone,
-      password: dto.password,
+    // Create user with the appropriate identifier field
+    const userData: Record<string, unknown> = {
       role: role._id,
-    });
+      ...(isEmail
+        ? { email: normalizedIdentifier, isEmailVerified: true }
+        : { phone: normalizedIdentifier, isPhoneVerified: true }),
+    };
+
+    const user = await this.userRepo.create(userData);
 
     securityLogger.info('New user registered', {
-      email: dto.email.toLowerCase(),
+      identifier: normalizedIdentifier,
       userId: user._id.toString(),
+      identifierType: isEmail ? 'email' : 'phone',
     });
 
-    const result = await this.otpService.sendOtp(
-      dto.email,
-      OtpPurpose.REGISTRATION,
-      user.firstName,
-    );
-    return { expiresIn: result.expiresIn, otp: result.otp };
-  }
-
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ otp?: string; expiresIn: number }> {
-    const user = await this.userRepo.findOne({
-      phone: dto.phone,
-      isDeleted: false,
-    });
-
-    if (!user) {
-      throw ApiError.notFound('User not found with this phone number');
-    }
-
-    const result = await this.otpService.sendOtp(
-      dto.phone,
-      OtpPurpose.PASSWORD_RESET,
-      user.firstName,
-    );
-    return result;
-  }
-
-  async verifyOtp(
-    identifier: string,
-    otp: string,
-    purpose: OtpPurpose,
-  ): Promise<{ verificationToken: string }> {
-    await this.otpService.verifyOtp(identifier, otp, purpose);
-
-    const verificationToken = this.jwtService.sign(
-      { identifier, purpose },
-      {
-        secret: this.configService.getOrThrow('auth.jwtSecret', { infer: true }),
-        expiresIn: '5m',
-      },
-    );
+    // Auto-login: generate tokens and create device session
+    const tokens = await this.generateTokens(user, deviceInfo);
 
     return {
-      verificationToken,
+      ...tokens,
+      user: this.buildUserResponse(user),
     };
   }
 
-  async resetPassword(dto: ResetPasswordDto): Promise<void> {
-    const payload = this.verifyVerificationToken(dto.verificationToken, OtpPurpose.PASSWORD_RESET);
+  /**
+   * User login with OTP verification.
+   * - Verifies OTP internally (purpose: LOGIN_VERIFICATION)
+   * - Returns tokens + user data
+   */
+  async userLogin(dto: UserLoginDto, deviceInfo: DeviceInfo): Promise<LoginDataDto> {
+    const isEmail = dto.identifier.includes('@');
+    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
 
+    // Check account lockout
+    const lockStatus = await this.suspiciousActivityService.isAccountLocked(
+      normalizedIdentifier,
+      deviceInfo.ipAddress,
+    );
+
+    if (lockStatus.isLocked) {
+      throw ApiError.forbidden(
+        `Account temporarily locked. Try again after ${lockStatus.lockoutUntil?.toISOString()}`,
+      );
+    }
+
+    // Find user by identifier
     const user = await this.userRepo.findOne({
-      phone: payload.identifier,
+      ...(isEmail ? { email: normalizedIdentifier } : { phone: normalizedIdentifier }),
       isDeleted: false,
     });
 
     if (!user) {
-      throw ApiError.notFound('User not found');
+      await this.handleFailedLogin(normalizedIdentifier, deviceInfo);
+      throw ApiError.notFound(`User not found with this ${isEmail ? 'email' : 'phone number'}`);
     }
 
-    if (await user.comparePassword(dto.password)) {
-      throw ApiError.badRequest('New password cannot be the same as the old password');
+    if (user.status === StatusEnum.INACTIVE) {
+      throw ApiError.badRequest('User account is inactive.');
     }
 
-    user.password = dto.password;
-    await user.save();
+    // Verify OTP internally
+    await this.otpService.verifyOtp(normalizedIdentifier, dto.otp, OtpPurpose.LOGIN_VERIFICATION);
 
-    await this.deviceSessionService.revokeAllSessions(user._id.toString());
+    // Generate tokens and create device session
+    const tokens = await this.generateTokens(user, deviceInfo);
+
+    securityLogger.info('User login successful', {
+      identifier: normalizedIdentifier,
+      userId: user._id.toString(),
+    });
+
+    return {
+      ...tokens,
+      user: this.buildUserResponse(user),
+    };
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
-    const user = await this.userRepo.findById(userId);
-
-    if (!user) {
-      throw ApiError.notFound('User not found');
-    }
-
-    const isPasswordValid = await user.comparePassword(dto.oldPassword);
-    if (!isPasswordValid) {
-      throw ApiError.badRequest('Invalid old password');
-    }
-
-    if (await user.comparePassword(dto.newPassword)) {
-      throw ApiError.badRequest('New password cannot be the same as the old password');
-    }
-
-    user.password = dto.newPassword;
-    await user.save();
-
-    securityLogger.info('User changed password', { userId });
-  }
-
+  /**
+   * Admin login with email + password.
+   */
   async adminLogin(dto: AdminLoginDto, deviceInfo: DeviceInfo): Promise<LoginDataDto> {
     const normalizedEmail = dto.email.toLowerCase();
 
@@ -217,82 +215,111 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
-        phone: user.phone,
-        profileImage: user.profileImage || '',
-        role: user.role ? user.role.toString() : null,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
-      },
+      user: this.buildUserResponse(user),
     };
   }
 
-  async userLogin(dto: UserLoginDto, deviceInfo: DeviceInfo): Promise<LoginDataDto> {
-    let user: UserDocument | null = null;
-    let identifier: string = '';
+  /**
+   * Send OTP for forgot password — supports both email and phone.
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ otp?: string; expiresIn: number }> {
+    const isEmail = dto.identifier.includes('@');
+    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
 
-    if (dto.phone) {
-      identifier = dto.phone;
-      user = await this.userRepo.findOne({ phone: dto.phone, isDeleted: false });
-    } else if (dto.email) {
-      identifier = dto.email.toLowerCase();
-      user = await this.userRepo.findOne({ email: identifier, isDeleted: false });
-    }
-
-    if (!identifier) {
-      throw ApiError.badRequest('Email or phone is required');
-    }
-
-    const lockStatus = await this.suspiciousActivityService.isAccountLocked(
-      identifier,
-      deviceInfo.ipAddress,
-    );
-
-    if (lockStatus.isLocked) {
-      throw ApiError.forbidden(
-        `Account temporarily locked. Try again after ${lockStatus.lockoutUntil?.toISOString()}`,
-      );
-    }
-
-    if (!user) {
-      await this.handleFailedLogin(identifier, deviceInfo);
-      throw ApiError.notFound(`User not found with this ${dto.phone ? 'phone number' : 'email'}`);
-    }
-
-    if (user.status === StatusEnum.INACTIVE) {
-      throw ApiError.badRequest('User account is inactive.');
-    }
-
-    await this.otpService.verifyOtp(identifier, dto.otp, OtpPurpose.LOGIN_VERIFICATION);
-
-    const tokens = await this.generateTokens(user, deviceInfo);
-
-    securityLogger.info('User login successful', {
-      identifier,
-      userId: user._id.toString(),
+    const user = await this.userRepo.findOne({
+      ...(isEmail ? { email: normalizedIdentifier } : { phone: normalizedIdentifier }),
+      isDeleted: false,
     });
 
-    return {
-      ...tokens,
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
-        phone: user.phone,
-        profileImage: user.profileImage || '',
-        role: user.role ? user.role.toString() : null,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
+    if (!user) {
+      throw ApiError.notFound(`User not found with this ${isEmail ? 'email' : 'phone number'}`);
+    }
+
+    const result = await this.otpService.sendOtp(
+      normalizedIdentifier,
+      OtpPurpose.PASSWORD_RESET,
+      user.firstName,
+    );
+    return result;
+  }
+
+  /**
+   * Verify OTP for general purposes (password reset, email change, etc.)
+   * Returns a short-lived verification token.
+   */
+  async verifyOtp(
+    identifier: string,
+    otp: string,
+    purpose: OtpPurpose,
+  ): Promise<{ verificationToken: string }> {
+    await this.otpService.verifyOtp(identifier, otp, purpose);
+
+    const verificationToken = this.jwtService.sign(
+      { identifier, purpose },
+      {
+        secret: this.configService.getOrThrow('auth.jwtSecret', { infer: true }),
+        expiresIn: '5m',
       },
+    );
+
+    return {
+      verificationToken,
     };
   }
+
+  /**
+   * Reset password using verification token from verify-otp.
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const payload = this.verifyVerificationToken(dto.verificationToken, OtpPurpose.PASSWORD_RESET);
+
+    const user = await this.userRepo.findOne({
+      $or: [{ email: payload.identifier }, { phone: payload.identifier }],
+      isDeleted: false,
+    });
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    if (await user.comparePassword(dto.password)) {
+      throw ApiError.badRequest('New password cannot be the same as the old password');
+    }
+
+    user.password = dto.password;
+    await user.save();
+
+    await this.deviceSessionService.revokeAllSessions(user._id.toString());
+  }
+
+  /**
+   * Change password for authenticated users.
+   */
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.userRepo.findById(userId);
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    const isPasswordValid = await user.comparePassword(dto.oldPassword);
+    if (!isPasswordValid) {
+      throw ApiError.badRequest('Invalid old password');
+    }
+
+    if (await user.comparePassword(dto.newPassword)) {
+      throw ApiError.badRequest('New password cannot be the same as the old password');
+    }
+
+    user.password = dto.newPassword;
+    await user.save();
+
+    securityLogger.info('User changed password', { userId });
+  }
+
+  // ============================================================================
+  // Token Management
+  // ============================================================================
 
   async refreshTokens(userId: string, deviceId: string, refreshToken: string): Promise<TokensDto> {
     const isValid = await this.deviceSessionService.validateRefreshToken(
@@ -395,6 +422,34 @@ export class AuthService {
     if (!revoked) {
       throw ApiError.unauthorized('Session not found');
     }
+  }
+
+  /**
+   * Find user by identifier (email or phone).
+   */
+  async detailsByIdentifier(identifier: string): Promise<UserDocument | null> {
+    const isEmail = identifier.includes('@');
+    return this.userRepo.findOne(
+      isEmail ? { email: identifier.toLowerCase() } : { phone: identifier },
+    );
+  }
+
+  /**
+   * Build standardized user response object.
+   */
+  private buildUserResponse(user: UserDocument) {
+    return {
+      id: user._id.toString(),
+      email: user.email || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      phone: user.phone || '',
+      profileImage: user.profileImage || '',
+      role: user.role ? user.role.toString() : null,
+      isEmailVerified: user.isEmailVerified || false,
+      isPhoneVerified: user.isPhoneVerified || false,
+    };
   }
 
   private async generateTokens(user: UserDocument, deviceInfo: DeviceInfo): Promise<TokensDto> {
@@ -515,9 +570,5 @@ export class AuthService {
     } catch {
       throw ApiError.badRequest('Invalid or expired verification token');
     }
-  }
-
-  async detailsByEmail(email: string): Promise<UserDocument | null> {
-    return this.userRepo.findOne({ email });
   }
 }

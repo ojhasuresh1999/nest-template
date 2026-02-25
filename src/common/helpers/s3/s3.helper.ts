@@ -2,6 +2,8 @@ import { DeleteObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/clien
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from 'src/config/config.types';
+import { CircuitBreakerService } from '../../../common/circuit-breaker';
+import CircuitBreaker from 'opossum';
 
 @Injectable()
 export class S3HelperService implements OnModuleInit {
@@ -10,11 +12,19 @@ export class S3HelperService implements OnModuleInit {
   private domainUrl!: string;
 
   private readonly logger = new Logger(S3HelperService.name);
+  private breaker!: CircuitBreaker;
 
-  constructor(private readonly configService: ConfigService<AllConfigType>) {}
+  constructor(
+    private readonly configService: ConfigService<AllConfigType>,
+    private readonly cbService: CircuitBreakerService,
+  ) {}
 
   onModuleInit() {
     this.initS3();
+    this.breaker = this.cbService.create('s3', (cmd: any) => this.s3.send(cmd), {
+      timeout: 8000,
+      resetTimeout: 15000,
+    });
   }
 
   private initS3() {
@@ -82,12 +92,7 @@ export class S3HelperService implements OnModuleInit {
     if (!key) return false;
 
     try {
-      await this.s3.send(
-        new HeadObjectCommand({
-          Bucket: bucket,
-          Key: key,
-        }),
-      );
+      await this.breaker.fire(new HeadObjectCommand({ Bucket: bucket, Key: key }));
       return true;
     } catch (error: any) {
       if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
@@ -110,12 +115,7 @@ export class S3HelperService implements OnModuleInit {
     }
 
     try {
-      await this.s3.send(
-        new DeleteObjectCommand({
-          Bucket: bucket,
-          Key: key,
-        }),
-      );
+      await this.breaker.fire(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
       this.logger.log(`Successfully deleted file from S3: ${key}`);
       return true;
     } catch (error) {

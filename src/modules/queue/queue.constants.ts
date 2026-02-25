@@ -53,7 +53,7 @@ export const Queues = {
         attempts: 3,
         backoff: { type: 'fixed', delay: 5000 },
         removeOnComplete: { count: 200 },
-        removeOnFail: { count: 50 },
+        removeOnFail: false,
       } satisfies DefaultJobOptions,
     },
   },

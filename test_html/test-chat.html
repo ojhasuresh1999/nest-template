@@ -238,23 +238,32 @@
                 <input
                   type="text"
                   id="apiUrl"
-                  value="http://localhost:1967/api"
+                  value="http://localhost:1979/api/v1"
                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
                 />
               </div>
               <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 space-y-3">
                 <input
-                  type="email"
+                  type="text"
                   id="email"
-                  placeholder="Email"
+                  placeholder="Email or Phone"
                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
                 />
-                <input
-                  type="password"
-                  id="password"
-                  placeholder="Password"
-                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
-                />
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    id="otp"
+                    placeholder="OTP (e.g. 1234)"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white outline-none input-focus"
+                  />
+                  <button
+                    onclick="sendOtp()"
+                    id="sendOtpBtn"
+                    class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                  >
+                    Send OTP
+                  </button>
+                </div>
                 <div class="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -648,7 +657,7 @@
       document.addEventListener('DOMContentLoaded', () => {
         // Load saved settings
         document.getElementById('apiUrl').value =
-          localStorage.getItem('apiUrl') || 'http://localhost:1967/api';
+          localStorage.getItem('apiUrl') || 'http://localhost:1979/api/v1';
 
         const token = getAuthToken();
         if (token) {
@@ -657,15 +666,49 @@
       });
 
       // ==================== AUTHENTICATION ====================
+      async function sendOtp() {
+        const identifier = document.getElementById('email').value.trim();
+        const btn = document.getElementById('sendOtpBtn');
+        const originalText = btn.innerHTML;
+
+        if (!identifier) {
+          showToast('Please enter email or phone', 'error');
+          return;
+        }
+
+        try {
+          btn.disabled = true;
+          btn.innerHTML = 'Sending...';
+
+          await axios.post(`${getApiUrl()}/auth/send-otp`, {
+            identifier,
+            purpose: 'LOGIN_VERIFICATION',
+          });
+
+          showToast('OTP sent successfully', 'success');
+          addLog(`OTP sent to ${identifier}`, 'success');
+        } catch (error) {
+          console.error(error);
+          showToast(error.response?.data?.message || 'Failed to send OTP', 'error');
+          addLog(
+            'Failed to send OTP: ' + (error.response?.data?.message || error.message),
+            'error',
+          );
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+
       async function performLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const identifier = document.getElementById('email').value.trim();
+        const otp = document.getElementById('otp').value.trim();
         const rememberMe = document.getElementById('rememberMe').checked;
         const btn = document.getElementById('loginBtn');
         const originalText = btn.innerHTML;
 
-        if (!email || !password) {
-          showToast('Please enter email and password', 'error');
+        if (!identifier || !otp) {
+          showToast('Please enter identifier and OTP', 'error');
           return;
         }
 
@@ -677,24 +720,27 @@
 
           localStorage.setItem('apiUrl', getApiUrl());
 
-          const res = await axios.post(`${getApiUrl()}/auth/login`, {
-            email,
-            password,
-            rememberMe,
-          });
+          const payload = { otp, rememberMe };
+          if (identifier.includes('@')) {
+            payload.email = identifier;
+          } else {
+            payload.phone = identifier;
+          }
+
+          const res = await axios.post(`${getApiUrl()}/auth/login`, payload);
 
           const data = res.data?.data;
           const token = data?.accessToken;
 
           if (token) {
             localStorage.setItem('authToken', token);
-            currentUser = data.user || { email };
+            currentUser = data.user || { email: identifier };
 
             updateAuthUI(true);
             addLog('Login successful!', 'success');
             showToast('Login Successful!', 'success');
 
-            document.getElementById('password').value = '';
+            document.getElementById('otp').value = '';
 
             // Connect to WebSocket
             connectSocket();
@@ -775,10 +821,9 @@
         }
 
         const wsUrl = getApiUrl()
-          .replace('/api', '')
-          .replace('http', 'ws')
-          .replace(':1967', ':1967');
-        const httpUrl = getApiUrl().replace('/api', '');
+          .replace(/\/api(\/v\d+)?$/, '')
+          .replace('http', 'ws');
+        const httpUrl = getApiUrl().replace(/\/api(\/v\d+)?$/, '');
 
         addLog(`Connecting to WebSocket at ${httpUrl}/chat...`, 'info');
         updateSocketUI('Connecting...', 'connecting');

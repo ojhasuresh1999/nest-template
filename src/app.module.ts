@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -19,6 +20,10 @@ import { RedisModule } from './modules/redis/redis.module';
 import { RoleModule } from './modules/role/role.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
+import { InterestsModule } from './modules/interests/interests.module';
+import { S3HealthIndicator, FirebaseHealthIndicator } from './common/health';
+import { CircuitBreakerModule } from './common/circuit-breaker';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
@@ -38,10 +43,27 @@ import { UserModule } from './modules/user/user.module';
     ThrottlerModule.forRoot([
       {
         name: 'default',
-        ttl: 60000, // 1 minute in milliseconds
-        limit: 100, // 100 requests per minute
+        ttl: 60000,
+        limit: 100,
       },
     ]),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService<AllConfigType>) => ({
+        store: await redisStore({
+          socket: {
+            host: configService.getOrThrow('redis.host', { infer: true }),
+            port: configService.getOrThrow('redis.port', { infer: true }),
+          },
+          password: configService.getOrThrow('redis.password', { infer: true }),
+          database: configService.getOrThrow('redis.db', { infer: true }),
+          ttl: 30000,
+        }),
+        max: 1000,
+      }),
+      inject: [ConfigService],
+    }),
     UserModule,
     AuthModule,
     RoleModule,
@@ -54,10 +76,14 @@ import { UserModule } from './modules/user/user.module';
     NotificationModule,
     S3Module,
     UploadModule,
+    InterestsModule,
+    CircuitBreakerModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    S3HealthIndicator,
+    FirebaseHealthIndicator,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

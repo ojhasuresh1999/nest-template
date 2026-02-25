@@ -2,6 +2,7 @@ import { SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import { PropData, SchemaWith } from '../../../common/decorators/schema.decorator';
 import { User } from '../../user/schemas/user.schema';
+import { softDeletePlugin } from '../../../common/plugins/soft-delete.plugin';
 
 export enum NotificationType {
   SYSTEM = 'SYSTEM',
@@ -46,5 +47,7 @@ export const NotificationSchema = SchemaFactory.createForClass(Notification);
 
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, isRead: 1 });
+
+NotificationSchema.plugin(softDeletePlugin);
 
 export type NotificationDocument = HydratedDocument<Notification>;

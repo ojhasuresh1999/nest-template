@@ -7,7 +7,7 @@ import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 
  */
 export class AdminLoginDto {
   @ApiProperty({
-    example: 'admin@example.com',
+    example: 'superadmin@yopmail.com',
     description: 'Admin email address',
   })
   @IsEmail()

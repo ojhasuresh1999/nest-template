@@ -10,7 +10,7 @@ class AuthEnvironmentVariablesValidator {
 
   @IsString()
   @IsOptional()
-  JWT_ACCESS_EXPIRATION: string = '15m';
+  JWT_ACCESS_EXPIRES_IN: string = '15m';
 
   @IsString()
   JWT_REFRESH_SECRET: string = 'default-refresh-secret-change-in-production-32';
@@ -54,7 +54,7 @@ export const authConfig = registerAs<AuthConfig>('auth', () => {
 
   return {
     jwtSecret: validatedConfig.JWT_SECRET,
-    jwtAccessExpiration: validatedConfig.JWT_ACCESS_EXPIRATION,
+    jwtAccessExpiration: validatedConfig.JWT_ACCESS_EXPIRES_IN,
     jwtRefreshSecret: validatedConfig.JWT_REFRESH_SECRET,
     jwtRefreshExpiration: validatedConfig.JWT_REFRESH_EXPIRATION,
     jwtRefreshExpirationShort: validatedConfig.JWT_REFRESH_EXPIRATION_SHORT,

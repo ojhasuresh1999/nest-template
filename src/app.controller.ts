@@ -12,6 +12,7 @@ import {
 import { RedisService } from './modules/redis/redis.service';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from './modules/auth/decorators';
+import { S3HealthIndicator, FirebaseHealthIndicator } from './common/health';
 
 @ApiTags('Health')
 @Controller('health')
@@ -22,6 +23,8 @@ export class AppController {
     private memory: MemoryHealthIndicator,
     private disk: DiskHealthIndicator,
     private redis: RedisService,
+    private s3Health: S3HealthIndicator,
+    private firebaseHealth: FirebaseHealthIndicator,
   ) {}
 
   @Get()
@@ -41,6 +44,8 @@ export class AppController {
     const checks: HealthIndicatorFunction[] = [
       () => this.db.pingCheck('database'),
       () => this.checkRedis(),
+      () => this.s3Health.isHealthy('s3'),
+      () => this.firebaseHealth.isHealthy('firebase'),
       () =>
         this.disk.checkStorage('disk', {
           path: '/',

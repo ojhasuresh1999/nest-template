@@ -41,6 +41,7 @@ export enum Permission {
 
 export enum UserRole {
   USER = 'User',
+  EXPERT = 'Expert',
   ADMIN = 'Admin',
   SUPER_ADMIN = 'SuperAdmin',
 }

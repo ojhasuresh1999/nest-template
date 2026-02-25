@@ -16,9 +16,6 @@ export class OtpService {
   ) {}
 
   /**
-   * Generate and send OTP to email
-   */
-  /**
    * Generate and send OTP to email or phone
    */
   async sendOtp(
@@ -76,10 +73,11 @@ export class OtpService {
         otp,
       };
     } else {
+      // TODO: Integrate SMS provider for phone OTP delivery
       this.logger.log(`OTP generated for phone ${normalizedIdentifier}: ${otp}`);
 
       return {
-        message: 'OTP sent successfully',
+        message: `OTP sent successfully to ${this.maskPhone(normalizedIdentifier)}`,
         expiresIn: otpConfig.ttlSeconds,
         otp,
       };
@@ -96,6 +94,7 @@ export class OtpService {
   ): Promise<{ valid: boolean; message: string }> {
     const normalizedIdentifier = identifier.toLowerCase();
     const key = this.getRedisKey(normalizedIdentifier, purpose);
+    const isEmail = normalizedIdentifier.includes('@');
 
     const storedOtp = await this.getStoredOtp(normalizedIdentifier, purpose);
 
@@ -103,35 +102,37 @@ export class OtpService {
       throw ApiError.badRequest('OTP expired or not found. Please request a new OTP.');
     }
 
-    // Check max attempts
     if (storedOtp.attempts >= DEFAULT_OTP_CONFIG.maxAttempts) {
       await this.deleteOtp(normalizedIdentifier, purpose);
       throw ApiError.forbidden('Maximum attempts exceeded. Please request a new OTP.');
     }
 
-    if (storedOtp.code !== otp) {
+    /**
+     * DEV BYPASS: Accept '1234' as a valid OTP in development mode
+     * TODO: Remove this bypass before deploying to production
+     */
+    const isDevBypass = otp === '1234' && process.env.NODE_ENV !== 'production';
+
+    if (storedOtp.code !== otp && !isDevBypass) {
       storedOtp.attempts += 1;
       const ttl = await this.redisService.getTTL(key);
       await this.storeOtp(normalizedIdentifier, purpose, storedOtp, ttl > 0 ? ttl : 60);
 
       const remainingAttempts = DEFAULT_OTP_CONFIG.maxAttempts - storedOtp.attempts;
       throw ApiError.badRequest(`Invalid OTP. ${remainingAttempts} attempt(s) remaining.`);
-    } else if (otp === '1234') {
-      /**
-       * TODO : Remove this in production
-       */
-      await this.deleteOtp(normalizedIdentifier, purpose);
-
-      if (purpose === OtpPurpose.REGISTRATION) {
-        await this.userRepo.update({ email: normalizedIdentifier }, { isEmailVerified: true });
-      }
-      this.logger.log(`OTP verified successfully for ${normalizedIdentifier} - ${purpose}`);
     }
+
+    // OTP verified — clean up and mark identifier as verified
     await this.deleteOtp(normalizedIdentifier, purpose);
 
     if (purpose === OtpPurpose.REGISTRATION) {
-      await this.userRepo.update({ email: normalizedIdentifier }, { isEmailVerified: true });
+      if (isEmail) {
+        await this.userRepo.update({ email: normalizedIdentifier }, { isEmailVerified: true });
+      } else {
+        await this.userRepo.update({ phone: normalizedIdentifier }, { isPhoneVerified: true });
+      }
     }
+
     this.logger.log(`OTP verified successfully for ${normalizedIdentifier} - ${purpose}`);
 
     return {
@@ -172,28 +173,28 @@ export class OtpService {
   /**
    * Get Redis key for OTP storage
    */
-  private getRedisKey(email: string, purpose: OtpPurpose): string {
-    return `shubha-otp:${email}:${purpose}`;
+  private getRedisKey(identifier: string, purpose: OtpPurpose): string {
+    return `shubha-otp:${identifier}:${purpose}`;
   }
 
   /**
    * Store OTP in Redis
    */
   private async storeOtp(
-    email: string,
+    identifier: string,
     purpose: OtpPurpose,
     data: StoredOtp,
     ttlSeconds: number,
   ): Promise<void> {
-    const key = this.getRedisKey(email, purpose);
+    const key = this.getRedisKey(identifier, purpose);
     await this.redisService.set(key, data, ttlSeconds);
   }
 
   /**
    * Get stored OTP from Redis
    */
-  private async getStoredOtp(email: string, purpose: OtpPurpose): Promise<StoredOtp | null> {
-    const key = this.getRedisKey(email, purpose);
+  private async getStoredOtp(identifier: string, purpose: OtpPurpose): Promise<StoredOtp | null> {
+    const key = this.getRedisKey(identifier, purpose);
     return this.redisService.get<StoredOtp>(key);
   }
 
@@ -212,7 +213,7 @@ export class OtpService {
   }
 
   /**
-   * Mask email for display
+   * Mask email for display (e.g., su***h@gmail.com)
    */
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split('@');
@@ -220,5 +221,18 @@ export class OtpService {
       return `${localPart[0]}***@${domain}`;
     }
     return `${localPart.slice(0, 2)}***${localPart.slice(-1)}@${domain}`;
+  }
+
+  /**
+   * Mask phone for display (e.g., +91****3210)
+   */
+  private maskPhone(phone: string): string {
+    if (phone.length <= 4) {
+      return '****';
+    }
+    const visibleStart = phone.startsWith('+') ? phone.slice(0, 3) : phone.slice(0, 2);
+    const visibleEnd = phone.slice(-4);
+    const maskedLength = phone.length - visibleStart.length - visibleEnd.length;
+    return `${visibleStart}${'*'.repeat(maskedLength)}${visibleEnd}`;
   }
 }

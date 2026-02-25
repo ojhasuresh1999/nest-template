@@ -247,9 +247,18 @@ export class EmailProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, error: Error) {
-    this.logger.error(
-      `❌ Job [${job.id}] failed after ${job.attemptsMade} attempts: ${error.message}`,
-    );
+    const maxAttempts = job.opts.attempts || 3;
+    const isFinalAttempt = job.attemptsMade >= maxAttempts;
+
+    if (isFinalAttempt) {
+      this.logger.error(
+        `🚨 [DLQ] Email Job [${job.id}] permanently failed | name=${job.name} | attempts=${job.attemptsMade} | error=${error.message} | data=${JSON.stringify(job.data)}`,
+      );
+    } else {
+      this.logger.warn(
+        `❌ Email Job [${job.id}] failed (attempt ${job.attemptsMade}/${maxAttempts}): ${error.message}`,
+      );
+    }
   }
 
   @OnWorkerEvent('progress')

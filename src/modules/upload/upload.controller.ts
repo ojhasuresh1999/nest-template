@@ -1,12 +1,4 @@
-import {
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Query,
-  Req,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Controller, HttpCode, HttpStatus, Post, Req, UseInterceptors } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ApiStandardResponse } from 'src/common/decorators/api-standard-response.decorator';
@@ -44,18 +36,17 @@ export class UploadController {
   })
   @ApiStandardResponse({ status: 200, description: 'Media uploaded successfully' })
   @UseInterceptors(MultiSharpS3Interceptor([{ name: 'media', directory: 'media', maxCount: 10 }]))
-  async uploadMedia(@Req() req: Request, @Query('folder') folder?: string) {
+  async uploadMedia(@Req() req: Request) {
     const keys = this.uploadService.getUploadedKeys(req);
     const mediaKeys = keys['media'] || [];
 
     return {
       message: 'Media uploaded successfully',
-      folder: folder || 'media',
-      options: {
-        domain: this.configService.getOrThrow('s3.awsDomainUrl', { infer: true }),
-        bucket: this.configService.getOrThrow('s3.awsS3Bucket', { infer: true }),
-      },
       mediaKeys,
+      fileUrls: mediaKeys.map(
+        (key) =>
+          `${this.configService.getOrThrow('s3.awsDomainUrl', { infer: true })}/${this.configService.getOrThrow('s3.awsS3Bucket', { infer: true })}/${key}`,
+      ),
     };
   }
 }

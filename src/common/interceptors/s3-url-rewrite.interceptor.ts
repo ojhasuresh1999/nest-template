@@ -4,10 +4,6 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AllConfigType } from 'src/config/config.types';
 
-/**
- * Known field names that store S3 object keys.
- * The interceptor will prepend the CDN base URL to these fields.
- */
 const S3_KEY_FIELDS = new Set([
   'profileImage',
   'serviceListImage',
@@ -24,12 +20,12 @@ const S3_KEY_FIELDS = new Set([
   'image',
   'images',
   'logo',
+  'icon',
 ]);
 
 @Injectable()
 export class S3UrlRewriteInterceptor implements NestInterceptor {
   private baseUrl!: string;
-
   private readonly logger = new Logger(S3UrlRewriteInterceptor.name);
 
   constructor(private readonly configService: ConfigService<AllConfigType>) {}
@@ -43,37 +39,32 @@ export class S3UrlRewriteInterceptor implements NestInterceptor {
     return this.baseUrl;
   }
 
-  /**
-   * Check if a value looks like it's already a full URL
-   */
   private isFullUrl(value: string): boolean {
     return value.startsWith('http://') || value.startsWith('https://');
   }
 
-  /**
-   * Prepend the CDN base URL to a relative S3 key.
-   * If the value is already a full URL, return it unchanged.
-   * If the value is empty or not a string, return it unchanged.
-   */
   private rewriteValue(value: unknown): unknown {
     if (typeof value !== 'string' || !value || value.trim() === '') {
       return value;
     }
-
     if (this.isFullUrl(value)) {
       return value;
     }
-
     return `${this.getBaseUrl()}/${value}`;
   }
 
-  /**
-   * Recursively traverse an object/array and rewrite known S3 key fields.
-   * Uses an iterative approach with a stack to avoid stack overflow on deep objects.
-   */
   private rewriteObject(data: unknown): unknown {
     if (data === null || data === undefined) return data;
     if (typeof data !== 'object') return data;
+
+    // Convert any object with a toJSON method (e.g., Mongoose docs, ObjectId, Date)
+    if (typeof (data as any).toJSON === 'function') {
+      data = (data as any).toJSON();
+      // If conversion yielded a primitive, return it immediately
+      if (typeof data !== 'object' || data === null) {
+        return data;
+      }
+    }
 
     if (Array.isArray(data)) {
       return data.map((item) => this.rewriteObject(item));
@@ -93,7 +84,6 @@ export class S3UrlRewriteInterceptor implements NestInterceptor {
         result[key] = value;
       }
     }
-
     return result;
   }
 

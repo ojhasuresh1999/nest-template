@@ -80,31 +80,37 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
   exports: [QueueService, BullModule],
 })
 export class QueueModule implements OnApplicationShutdown {
+  private static readonly SHUTDOWN_TIMEOUT = 15000;
+
   constructor(private readonly moduleRef: ModuleRef) {}
 
-  /**
-   * Gracefully shutdown all workers and close queue connections
-   */
   async onApplicationShutdown(signal?: string) {
     console.log(`🔄 Queue module shutting down (signal: ${signal})`);
 
-    // Close all workers gracefully
     const processors = [
       this.moduleRef.get(EmailProcessor, { strict: false }),
       this.moduleRef.get(SmsProcessor, { strict: false }),
       this.moduleRef.get(NotificationProcessor, { strict: false }),
     ];
 
-    for (const processor of processors) {
-      if (processor?.worker) {
-        try {
-          await (processor.worker as Worker).close();
-        } catch (error) {
-          console.error('Error closing worker:', error);
-        }
-      }
-    }
+    const closePromises = processors
+      .filter((p) => p?.worker)
+      .map((p) => {
+        const worker = p.worker as Worker;
+        return worker
+          .close(true)
+          .then(() => console.log(`✅ Worker [${worker.name}] closed`))
+          .catch((err) => console.error(`❌ Worker [${worker.name}] close error:`, err));
+      });
 
-    console.log('✅ Queue workers closed gracefully');
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(() => {
+        console.warn('⚠️ Queue shutdown timed out, forcing exit');
+        resolve();
+      }, QueueModule.SHUTDOWN_TIMEOUT),
+    );
+
+    await Promise.race([Promise.allSettled(closePromises), timeout]);
+    console.log('✅ Queue shutdown complete');
   }
 }

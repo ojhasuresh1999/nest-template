@@ -19,7 +19,7 @@ export class UserService {
   }
 
   async getMyProfile(currentUserId: string) {
-    const userProfile = await this.userRepository.findFullProfile({ userId: currentUserId });
+    const userProfile = await this.userRepository.findOne({ _id: currentUserId });
 
     if (!userProfile) {
       throw new NotFoundException('Your profile could not be found');

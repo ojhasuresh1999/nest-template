@@ -44,7 +44,7 @@ export class MailHelper {
     });
 
     const sender =
-      this.configService.get<string>('mail.from', { infer: true }) || 'noreply@shubhavivah.com';
+      this.configService.get<string>('mail.from', { infer: true }) || 'noreply@consultly.com';
 
     const mailOptions = {
       from: sender,

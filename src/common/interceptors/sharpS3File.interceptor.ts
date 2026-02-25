@@ -40,8 +40,8 @@ const allowedExtensions = [
   '.jpg',
   '.jpeg',
   '.png',
-  'webp',
-  'avif',
+  '.webp',
+  '.avif',
   // '.pdf',
   // '.csv',
   '.mp4',
@@ -131,14 +131,12 @@ export class MultiSharpS3InterceptorBase implements NestInterceptor {
     return `videos/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}/${randomUUID()}${ext}`;
   }
 
-  private async processImage(buffer: Buffer, mimetype: string) {
+  private async processImage(buffer: Buffer) {
     const img = sharp(buffer)
       .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
       .rotate();
 
-    return mimetype === 'image/jpeg'
-      ? img.jpeg({ quality: 60, progressive: true, mozjpeg: true }).toBuffer()
-      : img.png({ compressionLevel: 9 }).toBuffer();
+    return img.webp({ quality: 80 }).toBuffer();
   }
 
   private computeVideoFingerprint(buffer: Buffer, chunkSize = 10 * 1024 * 1024) {
@@ -180,15 +178,15 @@ export class MultiSharpS3InterceptorBase implements NestInterceptor {
     directory: string,
     hash: string,
   ): Promise<string> {
-    const processed = await this.processImage(file.buffer, file.mimetype);
-    const key = `${directory}/${randomUUID()}${extname(file.originalname)}`;
+    const processed = await this.processImage(file.buffer);
+    const key = `${directory}/${randomUUID()}.webp`;
 
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: processed,
-        ContentType: file.mimetype,
+        ContentType: 'image/webp',
         CacheControl: 'public, max-age=31536000, immutable',
       }),
     );

@@ -2,6 +2,7 @@ import { SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import { PropData, SchemaWith } from '../../../common/decorators/schema.decorator';
 import { User } from '../../user/schemas/user.schema';
+import { softDeletePlugin } from '../../../common/plugins/soft-delete.plugin';
 
 @SchemaWith({ collection: 'conversations' })
 export class Conversation {
@@ -40,5 +41,7 @@ export const ConversationSchema = SchemaFactory.createForClass(Conversation);
 ConversationSchema.index({ participants: 1 });
 ConversationSchema.index({ participants: 1, lastMessageAt: -1 });
 ConversationSchema.index({ participants: 1, isDeleted: 1 });
+
+ConversationSchema.plugin(softDeletePlugin);
 
 export type ConversationDocument = HydratedDocument<Conversation>;

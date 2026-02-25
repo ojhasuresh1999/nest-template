@@ -3,6 +3,7 @@ import mongoose, { HydratedDocument } from 'mongoose';
 import { PropData, SchemaWith } from '../../../common/decorators/schema.decorator';
 import { User } from '../../user/schemas/user.schema';
 import { Conversation } from './conversation.schema';
+import { softDeletePlugin } from '../../../common/plugins/soft-delete.plugin';
 
 export enum MessageStatus {
   SENT = 'sent',
@@ -83,5 +84,7 @@ MessageSchema.index({ conversation: 1, createdAt: -1 });
 MessageSchema.index({ receiver: 1, status: 1 });
 MessageSchema.index({ sender: 1, createdAt: -1 });
 MessageSchema.index({ conversation: 1, isDeleted: 1, createdAt: -1 });
+
+MessageSchema.plugin(softDeletePlugin);
 
 export type MessageDocument = HydratedDocument<Message>;
