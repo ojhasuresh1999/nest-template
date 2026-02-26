@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
+
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -23,7 +23,6 @@ import { UserModule } from './modules/user/user.module';
 import { InterestsModule } from './modules/interests/interests.module';
 import { S3HealthIndicator, FirebaseHealthIndicator } from './common/health';
 import { CircuitBreakerModule } from './common/circuit-breaker';
-import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
@@ -47,23 +46,7 @@ import { redisStore } from 'cache-manager-redis-yet';
         limit: 100,
       },
     ]),
-    CacheModule.registerAsync({
-      isGlobal: true,
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService<AllConfigType>) => ({
-        store: await redisStore({
-          socket: {
-            host: configService.getOrThrow('redis.host', { infer: true }),
-            port: configService.getOrThrow('redis.port', { infer: true }),
-          },
-          password: configService.getOrThrow('redis.password', { infer: true }),
-          database: configService.getOrThrow('redis.db', { infer: true }),
-          ttl: 30000,
-        }),
-        max: 1000,
-      }),
-      inject: [ConfigService],
-    }),
+
     UserModule,
     AuthModule,
     RoleModule,

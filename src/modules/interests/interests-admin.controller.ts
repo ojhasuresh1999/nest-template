@@ -10,6 +10,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -25,6 +26,9 @@ import { ResponseMessage } from '../../common/decorators/response-message.decora
 import { UserRole } from '../../common/enums';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CachePrefix, CacheInvalidate, CacheInvalidationInterceptor } from '../../common/cache';
+import { CustomCacheInterceptor } from '../../common/interceptors/custom-cache.interceptor';
+import { CacheTTL } from '@nestjs/cache-manager';
 import { CreateInterestsDto, InterestsResponseDto, UpdateInterestsDto } from './dto';
 import { InterestsService } from './interests.service';
 import { BasePaginationDto, StatusChangeDto } from 'src/common/dto/pagination.dto';
@@ -33,12 +37,15 @@ import { BasePaginationDto, StatusChangeDto } from 'src/common/dto/pagination.dt
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@UseInterceptors(CustomCacheInterceptor, CacheInvalidationInterceptor)
+@CachePrefix('interests')
 @Controller({ path: 'admin/interests', version: '1' })
 export class InterestsAdminController {
   constructor(private readonly interestsService: InterestsService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @CacheTTL(0)
   @ApiOperation({ summary: 'Admin Get all interests' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ResponseMessage('Fetched successfully')
@@ -47,6 +54,7 @@ export class InterestsAdminController {
   }
 
   @Post()
+  @CacheInvalidate('interests')
   @ApiOperation({
     summary: 'Admin Create interests',
     description: 'Admin can create interests',
@@ -60,6 +68,7 @@ export class InterestsAdminController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @CacheTTL(0)
   @ApiOperation({ summary: 'Admin Get interests by id' })
   @ApiStandardResponse({
     status: 200,
@@ -74,6 +83,7 @@ export class InterestsAdminController {
   }
 
   @Patch(':id')
+  @CacheInvalidate('interests')
   @ApiOperation({
     summary: 'Admin Update interests',
     description: 'Admin can update interests details',
@@ -92,6 +102,7 @@ export class InterestsAdminController {
   }
 
   @Patch(':id/status')
+  @CacheInvalidate('interests')
   @ApiOperation({
     summary: 'Admin Update interests status',
     description: 'Admin can toggle interests status',
@@ -110,6 +121,7 @@ export class InterestsAdminController {
   }
 
   @Delete(':id')
+  @CacheInvalidate('interests')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Admin Delete interests',

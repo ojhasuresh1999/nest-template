@@ -4,24 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AllConfigType } from 'src/config/config.types';
 
-const S3_KEY_FIELDS = new Set([
-  'profileImage',
-  'serviceListImage',
-  'serviceImage',
-  'categoryImage',
-  'offerImage',
-  'ratingImages',
-  'fileUrl',
-  'mediaUrls',
-  'coverImage',
-  'bannerImage',
-  'thumbnail',
-  'avatar',
-  'image',
-  'images',
-  'logo',
-  'icon',
-]);
+const S3_KEY_FIELDS = new Set(['profileImage', 'logo', 'icon']);
 
 @Injectable()
 export class S3UrlRewriteInterceptor implements NestInterceptor {

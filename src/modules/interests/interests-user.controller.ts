@@ -1,3 +1,4 @@
+import { CacheTTL } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -8,7 +9,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -16,28 +16,32 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
-import { BasePaginationDto } from 'src/common/dto/pagination.dto';
 import { ApiStandardResponse } from '../../common/decorators/api-standard-response.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
+import { JwtAuthGuard, Public } from '../auth';
+import { CustomCacheInterceptor } from '../../common/interceptors/custom-cache.interceptor';
+import { CachePrefix } from '../../common/cache';
 import { InterestsResponseDto } from './dto';
+import { UserListInterestsDto } from './dto/list-interest.dto';
 import { InterestsService } from './interests.service';
 
 @ApiTags('Interests')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
-@UseInterceptors(CacheInterceptor)
+@UseGuards(JwtAuthGuard)
+@UseInterceptors(CustomCacheInterceptor)
+@CachePrefix('interests')
 @Controller({ path: 'interests', version: '1' })
 export class InterestsUserController {
   constructor(private readonly interestsService: InterestsService) {}
 
+  @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
-  @CacheTTL(60000)
+  @CacheTTL(0)
   @ApiOperation({ summary: 'Get all interests for user' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ResponseMessage('Fetched successfully')
-  async findAll(@Query() query: BasePaginationDto) {
+  async findAll(@Query() query: UserListInterestsDto) {
     return this.interestsService.findAll(query, false);
   }
 

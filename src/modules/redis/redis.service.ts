@@ -61,16 +61,17 @@ export class RedisService implements OnApplicationShutdown {
   }
 
   async deletePattern(pattern: string): Promise<number> {
-    const keys = await this.client.keys(pattern);
-    if (keys.length === 0) return 0;
-
-    const batchSize = 1000;
+    let cursor = '0';
     let deleted = 0;
 
-    for (let i = 0; i < keys.length; i += batchSize) {
-      const batch = keys.slice(i, i + batchSize);
-      deleted += await this.client.del(...batch);
-    }
+    do {
+      const [nextCursor, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+
+      if (keys.length > 0) {
+        deleted += await this.client.del(...keys);
+      }
+    } while (cursor !== '0');
 
     return deleted;
   }
