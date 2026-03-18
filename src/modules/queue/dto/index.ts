@@ -57,6 +57,23 @@ export class SendWelcomeEmailDto {
 }
 
 /**
+ * DTO for sending promotional email
+ */
+export class SendPromotionalEmailDto {
+  @ApiProperty({ description: 'Recipient email', example: 'user@example.com' })
+  @IsString()
+  to: string;
+
+  @ApiProperty({ description: 'User name for personalization', example: 'John Doe' })
+  @IsString()
+  userName: string;
+
+  @ApiProperty({ description: 'Campaign ID or name', example: 'spring_sale_2026' })
+  @IsString()
+  campaignContent: string;
+}
+
+/**
  * DTO for sending password reset email
  */
 export class SendPasswordResetDto {

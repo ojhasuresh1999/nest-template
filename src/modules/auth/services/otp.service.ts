@@ -208,6 +208,7 @@ export class OtpService {
       [OtpPurpose.EMAIL_CHANGE]: 'Email Change',
       [OtpPurpose.PHONE_VERIFICATION]: 'Phone Verification',
       [OtpPurpose.LOGIN_VERIFICATION]: 'Login Verification',
+      [OtpPurpose.ACCOUNT_DELETE_VERIFICATION]: 'Account Delete Verification',
     };
     return labels[purpose] || purpose;
   }

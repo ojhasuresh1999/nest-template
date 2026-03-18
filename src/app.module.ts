@@ -7,6 +7,8 @@ import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CircuitBreakerModule } from './common/circuit-breaker';
+import { FirebaseHealthIndicator, S3HealthIndicator } from './common/health';
 import { FirebaseModule } from './common/modules/firebase.module';
 import { MailModule } from './common/modules/mail.module';
 import { S3Module } from './common/modules/s3.module';
@@ -14,15 +16,14 @@ import { AllConfigsList } from './config/all-configs-list';
 import { AllConfigType } from './config/config.types';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { CmsModule } from './modules/cms/cms.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RoleModule } from './modules/role/role.module';
+import { SystemLogModule } from './modules/system-log/system-log.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
-import { InterestsModule } from './modules/interests/interests.module';
-import { S3HealthIndicator, FirebaseHealthIndicator } from './common/health';
-import { CircuitBreakerModule } from './common/circuit-breaker';
 
 @Module({
   imports: [
@@ -59,8 +60,9 @@ import { CircuitBreakerModule } from './common/circuit-breaker';
     NotificationModule,
     S3Module,
     UploadModule,
-    InterestsModule,
     CircuitBreakerModule,
+    SystemLogModule,
+    CmsModule,
   ],
   controllers: [AppController],
   providers: [

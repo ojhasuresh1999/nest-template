@@ -70,6 +70,18 @@ export class FirebaseService implements OnModuleInit {
   }
 
   /**
+   * Check if Firebase credentials are provided in configuration
+   */
+  isConfigured(): boolean {
+    const firebaseConfig = this.configService.get('firebase', { infer: true });
+    return !!(
+      firebaseConfig?.projectId &&
+      firebaseConfig?.clientEmail &&
+      firebaseConfig?.privateKey
+    );
+  }
+
+  /**
    * Check if Firebase is properly initialized
    */
   isReady(): boolean {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { QueueService } from 'src/modules/queue/queue.service';
 import { StatusEnum, UserRole } from 'src/common/enums';
 import { ApiError } from 'src/common/errors/api-error';
 import { AllConfigType } from '../../config/config.types';
@@ -11,6 +12,7 @@ import { UserDocument } from '../user/schemas/user.schema';
 import {
   AdminLoginDto,
   ChangePasswordDto,
+  DeleteAccountDto,
   ForgotPasswordDto,
   LoginDataDto,
   RegisterDto,
@@ -36,6 +38,7 @@ export class AuthService {
     private suspiciousActivityService: SuspiciousActivityService,
     private otpService: OtpService,
     private readonly roleRepo: RoleRepository,
+    private readonly queueService: QueueService,
   ) {}
 
   // ============================================================================
@@ -101,6 +104,17 @@ export class AuthService {
       userId: user._id.toString(),
       identifierType: isEmail ? 'email' : 'phone',
     });
+
+    if (isEmail) {
+      await this.queueService.addJob({
+        queue: 'QUEUE__LOW_PRIORITY_EMAIL',
+        job: 'SEND_WELCOME_EMAIL',
+        data: {
+          to: normalizedIdentifier,
+          userName: user.firstName || 'there',
+        },
+      });
+    }
 
     // Auto-login: generate tokens and create device session
     const tokens = await this.generateTokens(user, deviceInfo);
@@ -241,6 +255,51 @@ export class AuthService {
       user.firstName,
     );
     return result;
+  }
+
+  /**
+   * Send link for forgot password for admins.
+   */
+  async adminForgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const normalizedEmail = dto.identifier.toLowerCase().trim();
+
+    const user = await this.userRepo.findOne({
+      email: normalizedEmail,
+      isDeleted: false,
+    });
+
+    if (!user) {
+      throw ApiError.notFound('User not found with this email');
+    }
+
+    const role = await this.roleRepo.findById(user.role?.toString());
+    if (!role || (role.name !== UserRole.ADMIN && role.name !== UserRole.SUPER_ADMIN)) {
+      throw ApiError.forbidden('Access denied. Admin credentials required.');
+    }
+
+    const verificationToken = this.jwtService.sign(
+      { identifier: normalizedEmail, purpose: OtpPurpose.PASSWORD_RESET },
+      {
+        secret: this.configService.getOrThrow('auth.jwtSecret', { infer: true }),
+        expiresIn: '60m',
+      },
+    );
+
+    const adminUrl = this.configService.getOrThrow('app.adminUrl', { infer: true });
+    const resetLink = `${adminUrl}/reset-password?token=${verificationToken}`;
+
+    await this.queueService.addJob({
+      queue: 'QUEUE__EMAIL',
+      job: 'SEND_PASSWORD_RESET',
+      data: {
+        to: normalizedEmail,
+        userName: user.firstName || 'Admin',
+        resetLink,
+        expiresIn: '60',
+      },
+    });
+
+    return { message: 'Password reset link sent successfully' };
   }
 
   /**
@@ -422,6 +481,25 @@ export class AuthService {
     if (!revoked) {
       throw ApiError.unauthorized('Session not found');
     }
+  }
+
+  async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
+    this.verifyVerificationToken(dto.verificationToken, OtpPurpose.ACCOUNT_DELETE_VERIFICATION);
+
+    const user = await this.userRepo.findById(userId);
+
+    if (!user || user.isDeleted) {
+      throw ApiError.notFound('User account not found');
+    }
+
+    await (user as any).softDelete(userId);
+
+    await this.deviceSessionService.revokeAllSessions(userId);
+
+    securityLogger.warn('User account deleted', {
+      userId,
+      reason: dto.reason ?? 'No reason provided',
+    });
   }
 
   /**

@@ -3,260 +3,126 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Your OTP - Shubha Vivah</title>
-
+    <title>Verify your account - Consultly</title>
     <style>
       body {
         margin: 0;
         padding: 0;
         background-color: #f4f5f7;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
-
-      table {
-        border-collapse: collapse;
-      }
-
       .container {
         max-width: 600px;
-        margin: 0 auto;
-        background-color: #ffffff;
-        border-radius: 14px;
+        margin: 40px auto;
+        background-color: #fcfcfc;
+        border-radius: 16px;
         overflow: hidden;
-      }
-
-      /* HERO */
-      .hero {
-        background:
-          linear-gradient(rgba(233, 30, 99, 0.85), rgba(156, 39, 176, 0.85)),
-          url('https://cdn.webskitterscdn.com/shubha-vivah-matrimony/subha1707492579.webp');
-        background-size: cover;
-        background-position: center;
-        text-align: center;
-        padding: 40px 25px;
-        color: #ffffff;
-      }
-
-      .hero img {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: #ffffff;
-        padding: 5px;
-        margin-bottom: 15px;
-      }
-
-      .hero p {
-        font-size: 14px;
-        margin: 8px 0 0;
-        opacity: 0.95;
-      }
-
-      /* CONTENT */
-      .content {
-        padding: 35px 30px;
+        padding: 40px 30px;
         text-align: center;
       }
-
-      .purpose-badge {
-        display: inline-block;
-        background: linear-gradient(135deg, #e91e63, #9c27b0);
-        color: #ffffff;
-        font-size: 11px;
-        padding: 6px 16px;
-        border-radius: 20px;
-        letter-spacing: 1px;
-        margin-bottom: 20px;
-        text-transform: uppercase;
+      .logo {
+        margin-bottom: 40px;
       }
-
-      .content h2 {
-        margin: 0 0 10px;
-        color: #333;
+      .logo-text {
         font-size: 20px;
+        font-weight: 700;
+        color: #004d61;
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 8px;
+        letter-spacing: -0.5px;
       }
-
-      .content p {
-        font-size: 14px;
+      h1 {
+        font-size: 28px;
+        color: #111;
+        margin: 0 0 15px;
+        letter-spacing: -0.5px;
+      }
+      p.subtitle {
         color: #666;
+        font-size: 16px;
         line-height: 1.6;
-        margin: 10px 0;
+        margin: 0 auto 30px;
+        max-width: 350px;
       }
-
-      /* OTP CARD */
       .otp-box {
-        background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
-        border: 2px dashed #e91e63;
+        background-color: #ffffff;
         border-radius: 12px;
         padding: 30px 20px;
-        margin: 30px auto;
-        max-width: 280px;
-      }
-
-      .otp-label {
-        color: #9c27b0;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
       }
       .otp-code {
-        font-size: 48px;
-        font-weight: bold;
-        color: #e91e63;
-        letter-spacing: 12px;
         font-family: 'Courier New', monospace;
-        user-select: all; /* allows easy copy */
+        font-size: 42px;
+        font-weight: 700;
+        color: #004d61;
+        letter-spacing: 16px;
+        margin-left: 16px; /* offset for letter-spacing */
       }
-
-      .otp-tip {
-        font-size: 12px;
-        color: #999;
-        margin-top: 10px;
-      }
-
-      /* EXPIRY */
-      .expiry-warning {
-        background: #fff3e0;
-        border-left: 5px solid #ff9800;
-        padding: 14px 16px;
-        text-align: left;
-        border-radius: 8px;
-        margin: 25px 0;
+      .expiry-pill {
+        display: inline-block;
+        background-color: #f0f0f0;
+        color: #666;
         font-size: 13px;
-        color: #555;
+        border-radius: 20px;
+        padding: 10px 20px;
+        margin-bottom: 40px;
       }
-
-      .expiry-warning strong {
-        color: #e65100;
-      }
-
-      /* SECURITY */
-      .security-tip {
-        background: #e3f2fd;
-        border-radius: 10px;
-        padding: 18px;
-        text-align: left;
-        margin-top: 20px;
-      }
-
-      .security-tip h4 {
-        margin: 0 0 8px;
-        font-size: 14px;
-        color: #1565c0;
-      }
-
-      .security-tip ul {
-        margin: 0;
-        padding-left: 18px;
+      .info-text {
+        font-style: italic;
+        color: #888;
         font-size: 13px;
-        color: #1976d2;
+        line-height: 1.6;
+        max-width: 360px;
+        margin: 0 auto 40px;
       }
-
-      .security-tip li {
-        margin: 6px 0;
-      }
-
-      /* FOOTER */
       .footer {
-        background: #fafafa;
-        text-align: center;
-        padding: 25px 20px;
+        color: #999999;
         font-size: 12px;
-        color: #999;
+        padding-top: 20px;
       }
-
-      .footer .heart {
-        color: #e91e63;
-        font-size: 18px;
-        margin-bottom: 5px;
+      .footer a {
+        color: #004d61;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .footer-links {
+        margin: 15px 0 20px;
       }
     </style>
   </head>
-
   <body>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td align="center" style="padding: 20px">
-          <table class="container" width="600">
-            <tr>
-              <td class="hero">
-                <img
-                  src="https://cdn.webskitterscdn.com/shubha-vivah-matrimony/subha1707492579.webp"
-                  alt="Shubha Vivah"
-                />
-                <div
-                  style="
-                    font-size: 20px;
-                    font-weight: 600;
-                    margin-bottom: 6px;
-                    letter-spacing: 0.5px;
-                  "
-                >
-                  Shubha Vivah
-                </div>
-
-                <p>Find Your Perfect Life Partner</p>
-              </td>
-            </tr>
-
-            <tr>
-              <td class="content">
-                <div class="purpose-badge"><%= purpose %></div>
-
-                <h2>Hello, <%= firstName %>!</h2>
-
-                <p>
-                  We received a request to verify your email address. Please use the following
-                  One-Time Password (OTP) to complete your verification:
-                </p>
-
-                <div class="otp-box">
-                  <div class="otp-label">Your OTP Code</div>
-                  <div class="otp-code"><%= otp %></div>
-                  <p style="font-size: 12px; color: #999; margin-top: 8px">
-                    Tip: You can also long-press the OTP to copy it.
-                  </p>
-                  <!-- <div class="otp-tip">
-                    Tip: You can also long-press the OTP to copy it.
-                  </div> -->
-                </div>
-
-                <div class="expiry-warning">
-                  <strong> ⏱️ This code expires in <%= expiresInMinutes %> minutes. </strong>
-                  <br />
-                  If you didn't request this code, please ignore this email.
-                </div>
-
-                <div class="security-tip">
-                  <h4>🔒 Security Tips</h4>
-                  <ul>
-                    <li>Never share this OTP with anyone</li>
-                    <li>Our team will never ask for your OTP</li>
-                    <li>This code is valid for one-time use only</li>
-                  </ul>
-                </div>
-
-                <p style="margin-top: 30px; font-size: 13px; color: #888">
-                  If you're having trouble, please contact our support team.
-                </p>
-              </td>
-            </tr>
-
-            <!-- FOOTER -->
-            <tr>
-              <td class="footer">
-                <div class="heart">❤️</div>
-                <strong>Shubha Vivah</strong> - Where Hearts Meet<br />
-                &copy; <%= new Date().getFullYear() %> Shubha Vivah. All rights reserved.<br />
-                <span style="color: #bbb">
-                  This is an automated email. Please do not reply directly to this message.
-                </span>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+    <div class="container">
+      <div class="logo">
+        <span style="color: #004d61; font-size: 24px;">✦</span>
+        <div class="logo-text">Consultly</div>
+      </div>
+      
+      <h1>Verify your account</h1>
+      <p class="subtitle">
+        Use the code below to complete your sign-in.
+      </p>
+      
+      <div class="otp-box">
+        <div class="otp-code"><%= otp %></div>
+      </div>
+      
+      <div class="expiry-pill">
+        🕒 This code expires in <%= expiresInMinutes %> minutes.
+      </div>
+      
+      <div class="info-text">
+        If you didn't request this code, please ignore this email. Your account remains secure.
+      </div>
+      
+      <div class="footer">
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Unsubscribe</a>
+        </div>
+        <p>&copy; <%= new Date().getFullYear() %> Consultly. All rights reserved.</p>
+      </div>
+    </div>
   </body>
 </html>

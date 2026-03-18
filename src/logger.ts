@@ -5,6 +5,7 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 
 const appName = `${process.env['PROJECT_NAME']}-${process.env['NODE_ENV']}` || 'nest-api';
+console.log('🚀 ~ appName:', appName);
 const logDir = process.env['LOG_DIR'] || 'logs';
 const isProduction = process.env['NODE_ENV'] === 'production';
 

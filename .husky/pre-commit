@@ -3,7 +3,7 @@
 BRANCH_NAME=$(git symbolic-ref --short HEAD || echo "master")
 VALID_BRANCH_REGEX="^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)\/[a-zA-Z0-9\-]+$"
 
-if [ "$BRANCH_NAME" != "master" ] && [ "$BRANCH_NAME" != "main" ] && [ "$BRANCH_NAME" != "develop" ]; then
+if [ "$BRANCH_NAME" != "master" ] && [ "$BRANCH_NAME" != "main" ] && [ "$BRANCH_NAME" != "develop" ] && [ "$BRANCH_NAME" != "dev" ]; then
   if ! echo "$BRANCH_NAME" | grep -Eq "$VALID_BRANCH_REGEX"; then
     echo "🚫 Invalid branch name: $BRANCH_NAME"
     echo "Branch names must follow the pattern: <type>/<description>"

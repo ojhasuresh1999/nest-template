@@ -3,85 +3,199 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to Shubha Vivah</title>
+    <title>Welcome to Consultly</title>
     <style>
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f4f4f4;
+        background-color: #f4f5f7;
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
       .container {
         max-width: 600px;
-        margin: 0 auto;
-        background-color: #ffffff;
-      }
-      .header {
-        background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
-        padding: 30px;
-        text-align: center;
-      }
-      .header h1 {
-        color: #ffffff;
-        margin: 0;
-        font-size: 28px;
-      }
-      .content {
+        margin: 40px auto;
+        background-color: #fcfcfc;
+        border-radius: 16px;
+        overflow: hidden;
         padding: 40px 30px;
       }
-      .content h2 {
-        color: #333333;
-        margin-top: 0;
+      .logo {
+        text-align: center;
+        margin-bottom: 40px;
       }
-      .content p {
-        color: #666666;
+      .logo-text {
+        font-size: 20px;
+        font-weight: 700;
+        color: #004d61;
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 8px;
+        letter-spacing: -0.5px;
+      }
+      .hero {
+        text-align: left;
+        margin-bottom: 30px;
+      }
+      .hero h1 {
+        font-size: 42px;
+        color: #004d61;
+        margin: 0 0 15px 0;
+        line-height: 1.1;
+        letter-spacing: -1.5px;
+      }
+      .hero h2 {
+        font-size: 18px;
+        color: #8d5d30;
+        margin: 0;
+        font-weight: 500;
+      }
+      .content-box {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      }
+      .content-box p {
+        color: #555555;
+        font-size: 15px;
         line-height: 1.6;
+        margin: 0;
+      }
+      .images-row {
+        display: table;
+        width: 100%;
+        margin-bottom: 30px;
+      }
+      .image-col-left {
+        display: table-cell;
+        width: 48%;
+        background: linear-gradient(135deg, #8d5d30 0%, #68421d 100%);
+        border-radius: 12px;
+        padding: 20px;
+        color: #ffffff;
+        vertical-align: bottom;
+        height: 120px;
+      }
+      .image-col-left div.arrow {
+        text-align: right;
+        margin-bottom: 60px;
+        font-size: 18px;
+      }
+      .image-col-left div.text {
+         font-size: 14px;
+         font-weight: 500;
+      }
+      .image-col-right {
+        display: table-cell;
+        width: 48%;
+        background-color: #e0e0e0;
+        border-radius: 12px;
+        height: 120px;
+      }
+      .spacer {
+        display: table-cell;
+        width: 4%;
+      }
+      .action-container {
+        text-align: center;
+        margin-bottom: 30px;
       }
       .button {
         display: inline-block;
-        padding: 14px 28px;
-        background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+        padding: 16px 0;
+        width: 100%;
+        background-color: #004d61;
         color: #ffffff;
         text-decoration: none;
-        border-radius: 25px;
-        font-weight: bold;
-        margin: 20px 0;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+      }
+      .divider {
+        text-align: center;
+        margin: 40px 0 30px;
+      }
+      .divider span {
+        font-size: 10px;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        background: #fcfcfc;
+        padding: 0 10px;
+        position: relative;
+        z-index: 1;
+        font-weight: 600;
+      }
+      .divider::before {
+        content: "";
+        display: block;
+        height: 1px;
+        background: #eee;
+        position: relative;
+        top: 8px;
+        z-index: 0;
       }
       .footer {
-        background-color: #f8f8f8;
-        padding: 20px;
         text-align: center;
         color: #999999;
         font-size: 12px;
+        margin-top: 40px;
+      }
+      .footer a {
+        color: #004d61;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .footer-links {
+        margin: 15px 0;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="header">
-        <h1>Shubha Vivah</h1>
+      <div class="logo">
+        <span style="color: #004d61; font-size: 24px;">✦</span>
+        <div class="logo-text">Consultly</div>
       </div>
-      <div class="content">
-        <h2>Welcome, <%= firstName %>!</h2>
-        <p>
-          Thank you for joining Shubha Vivah. We're excited to help you find your perfect life
-          partner.
-        </p>
-        <p>
-          Your account has been successfully created. You can now log in and complete your profile
-          to start your journey.
-        </p>
-        <p style="text-align: center">
-          <a href="<%= loginUrl %>" class="button">Complete Your Profile</a>
-        </p>
-        <p>If you have any questions, feel free to contact our support team.</p>
-        <p>Best regards,<br />The Shubha Vivah Team</p>
+      
+      <div class="hero">
+        <h1>Welcome to<br/>Consultly</h1>
+        <h2>Your journey to expert<br/>growth starts now.</h2>
       </div>
+      
+      <div class="content-box">
+        <p>Step into a space where knowledge meets strategy. Connect with industry leaders and transform your professional trajectory today.</p>
+      </div>
+      
+      <div class="images-row">
+        <div class="image-col-left">
+          <div class="arrow">↗</div>
+          <div class="text">Scale Fast</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="image-col-right" style="background: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=400') center/cover; border-radius: 12px;">
+        </div>
+      </div>
+      
+      <div class="action-container">
+        <a href="<%= verificationLink %>" class="button">Get Started</a>
+      </div>
+      
+      <div class="divider">
+        <span>THE PREMIUM STANDARD</span>
+      </div>
+      
       <div class="footer">
-        <p>&copy; <%= new Date().getFullYear() %> Shubha Vivah. All rights reserved.</p>
-        <p>
-          This email was sent to <%= email %>. If you did not sign up, please ignore this email.
-        </p>
+        <p>&copy; <%= new Date().getFullYear() %> Consultly. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Unsubscribe</a>
+        </div>
+        <div style="margin-top: 30px; opacity: 0.2;">
+          <span style="font-size: 32px; font-family: sans-serif;">⟡</span>
+        </div>
       </div>
     </div>
   </body>

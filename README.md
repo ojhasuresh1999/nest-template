@@ -1,4 +1,4 @@
-# Consultly - Backend API
+# Maps2Learn - Backend API
 
 ![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -6,7 +6,7 @@
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-A robust, scalable, and secure backend application for the **Consultly** platform, built with [NestJS](https://nestjs.com/). This system handles user matchmaking, real-time communication, profile management, and administrative operations with a focus on performance and security.
+A robust, scalable, and secure backend application for the **Maps2Learn** platform, built with [NestJS](https://nestjs.com/). This system handles user matchmaking, real-time communication, profile management, and administrative operations with a focus on performance and security.
 
 ## 🚀 Key Features
 
@@ -57,8 +57,8 @@ Ensure you have the following installed:
 1.  **Clone the repository**
 
     ```bash
-    git clone https://gitlab.webskitters.com/node/consultly.git
-    cd consultly
+    git clone https://gitlab.webskitters.com/node/maps2learn.git
+    cd maps2learn
     ```
 
 2.  **Install dependencies**
@@ -77,7 +77,7 @@ Ensure you have the following installed:
     Update `.env` with your credentials:
 
     ```env
-    MONGO_URI="mongodb://localhost:27017/consultly"
+    MONGO_URI="mongodb://localhost:27017/maps2learn"
     REDIS_HOST=localhost
     JWT_SECRET="your-secure-secret"
     AWS_ACCESS_KEY_ID="your-aws-key"

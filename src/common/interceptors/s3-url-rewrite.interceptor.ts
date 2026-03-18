@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AllConfigType } from 'src/config/config.types';
 
-const S3_KEY_FIELDS = new Set(['profileImage', 'logo', 'icon']);
+const S3_KEY_FIELDS = new Set(['profileImage', 'logo', 'icon', 'url', 'thumbnail']);
 
 @Injectable()
 export class S3UrlRewriteInterceptor implements NestInterceptor {
@@ -40,10 +40,8 @@ export class S3UrlRewriteInterceptor implements NestInterceptor {
     if (data === null || data === undefined) return data;
     if (typeof data !== 'object') return data;
 
-    // Convert any object with a toJSON method (e.g., Mongoose docs, ObjectId, Date)
     if (typeof (data as any).toJSON === 'function') {
       data = (data as any).toJSON();
-      // If conversion yielded a primitive, return it immediately
       if (typeof data !== 'object' || data === null) {
         return data;
       }

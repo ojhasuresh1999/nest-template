@@ -23,7 +23,15 @@ import { ApiStandardResponse } from 'src/common/decorators/api-standard-response
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
-import { AdminLoginDto, AuthResponseDto, TokensDto, SessionDto, ChangePasswordDto } from './dto';
+import {
+  AdminLoginDto,
+  AuthResponseDto,
+  TokensDto,
+  SessionDto,
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto';
 import { JwtAuthGuard, JwtRefreshGuard, RolesGuard } from './guards';
 import { Public, CurrentUser, Roles } from './decorators';
 import type { AuthenticatedUser } from './decorators';
@@ -112,6 +120,45 @@ export class AuthAdminController {
   @ResponseMessage(RESPONSE_MESSAGES.AUTH.PASSWORD_CHANGED)
   async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(user.userId, dto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Admin Forgot Password',
+    description: 'Initiates password reset by sending a reset link to the provided admin email.',
+  })
+  @ApiStandardResponse({
+    status: 200,
+    description: 'Password reset link sent successfully',
+    type: AuthResponseDto,
+  })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ResponseMessage(RESPONSE_MESSAGES.AUTH.OTP_SENT)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.adminForgotPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Admin Reset Password',
+    description: 'Resets the admin password using the token sent to the email.',
+  })
+  @ApiStandardResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    type: AuthResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid token or password' })
+  @ResponseMessage(RESPONSE_MESSAGES.AUTH.PASSWORD_RESET)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto);
+    return { message: 'Password reset successfully' };
   }
 
   @Post('logout')

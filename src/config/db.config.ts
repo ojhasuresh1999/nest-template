@@ -16,7 +16,7 @@ export const dbConfig = registerAs<DatabaseConfig>('db', () => {
 
   return {
     uri: process.env['MONGO_URI'] || 'mongodb://localhost:27017',
-    database: process.env['DB_DATABASE'] || 'wtsNestSetup',
+    database: process.env['DB_DATABASE'] || 'maps2learn',
   };
 });
 

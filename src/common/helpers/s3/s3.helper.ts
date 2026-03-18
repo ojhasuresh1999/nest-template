@@ -124,8 +124,6 @@ export class S3HelperService implements OnModuleInit {
     }
   }
 
-  // ─── URL-Based Operations (backward compatible) ──────────────────────
-
   /**
    * Extracts bucket and key from a full S3 URL.
    * Supports formats like: http://domain/bucket/key or https://bucket.s3.region.amazonaws.com/key
@@ -140,7 +138,6 @@ export class S3HelperService implements OnModuleInit {
         return null;
       }
 
-      // For MinIO-style URLs: /bucket/path/to/file
       const bucket = pathParts[0];
       const key = pathParts.slice(1).join('/');
 
@@ -162,7 +159,6 @@ export class S3HelperService implements OnModuleInit {
       return true;
     }
 
-    // If it's a relative key, use the default bucket
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return this.deleteFileByKey(this.bucket, url);
     }
@@ -188,7 +184,6 @@ export class S3HelperService implements OnModuleInit {
       return false;
     }
 
-    // If it's a relative key, use the default bucket
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return this.fileExistsByKey(this.bucket, url);
     }

@@ -163,14 +163,15 @@ export class ${pascalCase}AdminController {
   [`schemas/${kebabCase}.schema.ts`]: `import { SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { PropData, SchemaWith } from '../../../common/decorators/schema.decorator';
+import { StatusEnum } from 'src/common/enums';
 
 @SchemaWith({ collection: '${kebabCase}s' })
 export class ${pascalCase} {
   @PropData({ required: true, index: true })
   name: string;
 
-  @PropData({ default: true })
-  isActive: boolean;
+  @PropData({ type: String, default: StatusEnum.ACTIVE })
+  status: string;
 }
 
 export const ${pascalCase}Schema = SchemaFactory.createForClass(${pascalCase});
@@ -217,7 +218,8 @@ export * from './${kebabCase}-response.dto';
 `,
 
   [`dto/create-${kebabCase}.dto.ts`]: `import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsBoolean, IsOptional, IsEnum } from 'class-validator';
+import { StatusEnum } from 'src/common/enums';
 
 export class Create${pascalCase}Dto {
   @ApiProperty({ description: '${pascalCase} name' })
@@ -225,10 +227,11 @@ export class Create${pascalCase}Dto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Is active status', required: false, default: true })
-  @IsBoolean()
+  @ApiProperty({ description: 'Status', required: false, default: StatusEnum.ACTIVE })
+  @IsString()
   @IsOptional()
-  isActive?: boolean;
+  @IsEnum(StatusEnum)
+  status?: string;
 }
 `,
 
@@ -248,7 +251,7 @@ export class ${pascalCase}ResponseDto {
   name: string;
 
   @ApiProperty()
-  isActive: boolean;
+  status: string;
 
   @ApiProperty()
   createdAt: Date;

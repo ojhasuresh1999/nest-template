@@ -4,6 +4,7 @@ import { User, UserSchema } from './schemas/user.schema';
 import { UserRepository } from './repositories/user.repository';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
+import { UserAdminController } from './user-admin.controller';
 import { DeviceSession, DeviceSessionSchema } from '../auth/schemas';
 
 @Global()
@@ -14,7 +15,7 @@ import { DeviceSession, DeviceSessionSchema } from '../auth/schemas';
       { name: DeviceSession.name, schema: DeviceSessionSchema },
     ]),
   ],
-  controllers: [UserController],
+  controllers: [UserController, UserAdminController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository, MongooseModule],
 })

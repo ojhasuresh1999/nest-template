@@ -19,6 +19,7 @@ export const RESPONSE_MESSAGES = {
     TOKEN_REFRESHED: 'Tokens successfully refreshed',
     SESSION_REVOKED: 'Session revoked successfully',
     SESSIONS_FETCHED: 'Active sessions retrieved successfully',
+    ACCOUNT_DELETED: 'Account deleted successfully',
   },
   USER: {
     PROFILE_FETCHED: 'User profile retrieved successfully',
@@ -32,6 +33,8 @@ export const RESPONSE_MESSAGES = {
     RESET_PASSWORD: 'User password reset successfully',
     PROFILE_IMAGE_UPDATED: 'User profile image updated successfully',
     STATUS_UPDATED: 'User status updated successfully',
+    USER_DELETED: 'User deleted successfully',
+    STATS_FETCHED: 'User statistics retrieved successfully',
   },
   ADMIN: {
     ACCESS_VERIFIED: 'Admin access verified',
@@ -169,5 +172,19 @@ export const RESPONSE_MESSAGES = {
   REFUND_POLICY: {
     UPSERT_SUCCESS: 'Refund-policy cms content saved successfully',
     FETCHED: 'Refund-policy cms content fetched successfully',
+  },
+  FEED: {
+    CREATED: 'Feed post created successfully',
+    UPDATED: 'Feed post updated successfully',
+    DELETED: 'Feed post deleted successfully',
+    FETCHED: 'Feed posts retrieved successfully',
+    DETAILS_FETCHED: 'Feed post details retrieved successfully',
+    STATUS_UPDATED: 'Feed post status updated successfully',
+    LIKED: 'Post liked successfully',
+    UNLIKED: 'Post unliked successfully',
+    COMMENT_ADDED: 'Comment added successfully',
+    COMMENT_DELETED: 'Comment deleted successfully',
+    COMMENTS_FETCHED: 'Comments retrieved successfully',
+    MY_FEED_FETCHED: 'Your posts retrieved successfully',
   },
 };

@@ -50,6 +50,10 @@ class EnvironmentVariablesValidator {
   @IsString()
   @IsOptional()
   WORKING_DIRECTORY = process.cwd();
+
+  @IsString()
+  @IsOptional()
+  ADMIN_URL = 'https://admin.consultly.com';
 }
 
 export const appConfig = registerAs<AppConfig>('app', () => {
@@ -70,6 +74,7 @@ export const appConfig = registerAs<AppConfig>('app', () => {
     host: validatedConfig.HOST || 'localhost',
     port,
     apiPrefix: validatedConfig.API_PREFIX || 'api',
+    adminUrl: validatedConfig.ADMIN_URL || 'https://admin.consultly.com',
   };
 });
 

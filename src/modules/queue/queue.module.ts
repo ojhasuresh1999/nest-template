@@ -8,6 +8,7 @@ import { Worker } from 'bullmq';
 import { Queues } from './queue.constants';
 import { QueueService } from './queue.service';
 import { EmailProcessor } from './processors/email.processor';
+import { LowPriorityEmailProcessor } from './processors/low-priority-email.processor';
 import { SmsProcessor } from './processors/sms.processor';
 import { NotificationProcessor } from './processors/notification.processor';
 import { MailHelper } from 'src/common/helpers/mail/mail.helper';
@@ -58,6 +59,14 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
       name: Queues.QUEUE__EMAIL.name,
       adapter: BullMQAdapter,
     }),
+    BullModule.registerQueue({
+      name: Queues.QUEUE__LOW_PRIORITY_EMAIL.name,
+      defaultJobOptions: Queues.QUEUE__LOW_PRIORITY_EMAIL.options.defaultJobOptions,
+    }),
+    BullBoardModule.forFeature({
+      name: Queues.QUEUE__LOW_PRIORITY_EMAIL.name,
+      adapter: BullMQAdapter,
+    }),
 
     BullModule.registerQueue({
       name: Queues.QUEUE__SMS.name,
@@ -76,7 +85,14 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
       adapter: BullMQAdapter,
     }),
   ],
-  providers: [QueueService, EmailProcessor, SmsProcessor, NotificationProcessor, MailHelper],
+  providers: [
+    QueueService,
+    EmailProcessor,
+    LowPriorityEmailProcessor,
+    SmsProcessor,
+    NotificationProcessor,
+    MailHelper,
+  ],
   exports: [QueueService, BullModule],
 })
 export class QueueModule implements OnApplicationShutdown {
@@ -89,6 +105,7 @@ export class QueueModule implements OnApplicationShutdown {
 
     const processors = [
       this.moduleRef.get(EmailProcessor, { strict: false }),
+      this.moduleRef.get(LowPriorityEmailProcessor, { strict: false }),
       this.moduleRef.get(SmsProcessor, { strict: false }),
       this.moduleRef.get(NotificationProcessor, { strict: false }),
     ];

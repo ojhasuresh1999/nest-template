@@ -6,6 +6,7 @@ export type AppConfig = {
   host: string;
   port: number;
   apiPrefix: string;
+  adminUrl: string;
 };
 
 export type DatabaseConfig = {

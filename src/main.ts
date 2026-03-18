@@ -165,7 +165,7 @@ async function bootstrap() {
 
   const swaggerContact = {
     name: 'Suresh Ojha',
-    url: 'https://gitlab.webskitters.com/node/consultly.git',
+    url: 'https://gitlab.webskitters.com/node/maps2learn',
     email: 'suresh.webskitters@gmail.com',
   };
 

@@ -40,7 +40,7 @@ export class AppController {
     status: 503,
     description: 'Service unavailable',
   })
-  check() {
+  async check() {
     const checks: HealthIndicatorFunction[] = [
       () => this.db.pingCheck('database'),
       () => this.checkRedis(),
@@ -60,7 +60,37 @@ export class AppController {
       );
     }
 
-    return this.health.check(checks);
+    const healthResult = await this.health.check(checks);
+
+    const memUsage = process.memoryUsage();
+    const formatBytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    const cpuUsage = process.cpuUsage();
+    const uptimeSeconds = Math.floor(process.uptime());
+    const uptimeHours = Math.floor(uptimeSeconds / 3600);
+    const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+    const uptimeSecs = uptimeSeconds % 60;
+
+    return {
+      ...healthResult,
+      memory: {
+        rss: formatBytes(memUsage.rss),
+        heapTotal: formatBytes(memUsage.heapTotal),
+        heapUsed: formatBytes(memUsage.heapUsed),
+        external: formatBytes(memUsage.external),
+        heapUsedPercent: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2) + '%',
+      },
+      cpu: {
+        usage: (process.cpuUsage().user / 1000000 / process.uptime()).toFixed(2) + '%',
+        user: (cpuUsage.user / 1000000).toFixed(2) + ' sec',
+        system: (cpuUsage.system / 1000000).toFixed(2) + ' sec',
+      },
+      uptime: {
+        milliseconds: uptimeSeconds * 1000,
+        seconds: uptimeSeconds,
+        formatted: `${uptimeHours}h ${uptimeMinutes}m ${uptimeSecs}s`,
+      },
+      runningSince: new Date(Date.now() - uptimeSeconds * 1000).toISOString(),
+    };
   }
 
   private async checkRedis(): Promise<HealthIndicatorResult> {

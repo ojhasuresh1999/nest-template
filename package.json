@@ -1,7 +1,7 @@
 {
-  "name": "consultly",
+  "name": "maps2learn",
   "version": "0.0.1",
-  "description": "Consultly",
+  "description": "Maps2Learn",
   "author": "Suresh Ojha",
   "engines": {
     "node": ">=22.0.0"
@@ -47,6 +47,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.11",
+    "@nestjs/schedule": "^6.1.1",
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.5.0",

@@ -9,13 +9,12 @@ import { CACHE_INVALIDATE_PREFIX } from './cache.constants';
 export class CacheInvalidationInterceptor implements NestInterceptor {
   private readonly logger = new Logger(CacheInvalidationInterceptor.name);
 
-  // 🎨 ANSI COLORS
   private readonly cyan = '\x1b[38;5;45m'; // Cool cyan
   private readonly yellow = '\x1b[38;5;226m'; // Bright yellow
   private readonly coral = '\x1b[38;5;203m'; // Soft red
   private readonly gray = '\x1b[90m'; // Subtle gray
-  private readonly bold = '\x1b[1m';
-  private readonly reset = '\x1b[0m';
+  private readonly bold = '\x1b[1m'; // Bold
+  private readonly reset = '\x1b[0m'; // Reset
 
   constructor(
     private readonly redis: RedisService,

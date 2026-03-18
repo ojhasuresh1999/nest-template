@@ -10,6 +10,10 @@ export class FirebaseHealthIndicator extends HealthIndicator {
 
   async isHealthy(key = 'firebase'): Promise<HealthIndicatorResult> {
     try {
+      if (!this.firebase.isConfigured()) {
+        return this.getStatus(key, true, { message: 'Not configured' });
+      }
+
       const ready = this.firebase.isReady();
       if (!ready) {
         throw new Error('Firebase Admin SDK not initialized');

@@ -8,7 +8,6 @@ export interface AuthenticatedSocket extends Socket {
     userId: string;
     email: string;
     role?: unknown;
-    brand?: string;
     deviceId: string;
   };
 }

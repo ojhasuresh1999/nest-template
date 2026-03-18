@@ -6,7 +6,6 @@ import { MailHelper } from 'src/common/helpers/mail/mail.helper';
 import {
   SendEmailDto,
   SendBulkEmailDto,
-  SendWelcomeEmailDto,
   SendPasswordResetDto,
   SendEmailVerificationDto,
   SendOtpEmailDto,
@@ -40,7 +39,6 @@ export class EmailProcessor extends WorkerHost {
     this.logger.log(`Processing job [${job.id}] - ${job.name}`);
 
     try {
-      // Update progress
       await job.updateProgress(10);
 
       let result: JobResult;
@@ -52,10 +50,6 @@ export class EmailProcessor extends WorkerHost {
 
         case this.jobs.SEND_BULK_EMAIL.name:
           result = await this.handleSendBulkEmail(job.data as SendBulkEmailDto, job);
-          break;
-
-        case this.jobs.SEND_WELCOME_EMAIL.name:
-          result = await this.handleSendWelcomeEmail(job.data as SendWelcomeEmailDto);
           break;
 
         case this.jobs.SEND_PASSWORD_RESET.name:
@@ -154,28 +148,12 @@ export class EmailProcessor extends WorkerHost {
   }
 
   /**
-   * Handle welcome email
-   */
-  private async handleSendWelcomeEmail(data: SendWelcomeEmailDto): Promise<JobResult> {
-    await this.mailHelper.sendMail(data.to, 'Welcome to Shubha Vivah!', 'welcome', {
-      userName: data.userName,
-      verificationLink: data.verificationLink,
-    });
-
-    return {
-      success: true,
-      message: `Welcome email sent to ${data.to}`,
-      timestamp: new Date(),
-    };
-  }
-
-  /**
    * Handle password reset email
    */
   private async handleSendPasswordReset(data: SendPasswordResetDto): Promise<JobResult> {
     await this.mailHelper.sendMail(
       data.to,
-      'Password Reset Request - Shubha Vivah',
+      'Password Reset Request - Consultly',
       'password-reset',
       {
         userName: data.userName,
@@ -195,16 +173,11 @@ export class EmailProcessor extends WorkerHost {
    * Handle email verification
    */
   private async handleSendEmailVerification(data: SendEmailVerificationDto): Promise<JobResult> {
-    await this.mailHelper.sendMail(
-      data.to,
-      'Verify Your Email - Shubha Vivah',
-      'email-verification',
-      {
-        userName: data.userName,
-        verificationLink: data.verificationLink,
-        expiresIn: data.expiresIn,
-      },
-    );
+    await this.mailHelper.sendMail(data.to, 'Verify Your Email - Consultly', 'email-verification', {
+      userName: data.userName,
+      verificationLink: data.verificationLink,
+      expiresIn: data.expiresIn,
+    });
 
     return {
       success: true,
@@ -219,7 +192,7 @@ export class EmailProcessor extends WorkerHost {
   private async handleSendOtpEmail(data: SendOtpEmailDto): Promise<JobResult> {
     await this.mailHelper.sendMail(
       data.to,
-      `Your OTP for ${data.purpose} - Shubha Vivah`,
+      `Your OTP for ${data.purpose} - Consultly`,
       'otp-verification',
       {
         otp: data.otp,

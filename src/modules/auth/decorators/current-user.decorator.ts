@@ -1,12 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { Brand } from '../../../common/enums';
 
 export interface AuthenticatedUser {
   userId: string;
   email: string;
   role: string;
   deviceId: string;
-  brand: Brand;
 }
 
 export const CurrentUser = createParamDecorator(

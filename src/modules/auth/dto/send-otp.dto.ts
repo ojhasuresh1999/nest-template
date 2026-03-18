@@ -18,7 +18,7 @@ export class SendOtpDto {
 
   @ApiProperty({
     enum: OtpPurpose,
-    example: OtpPurpose.REGISTRATION,
+    example: OtpPurpose.LOGIN_VERIFICATION,
     description: 'Purpose of the OTP',
   })
   @IsEnum(OtpPurpose)

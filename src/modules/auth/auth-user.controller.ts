@@ -32,6 +32,7 @@ import type { AuthenticatedUser } from './decorators';
 import { CurrentUser, Public, Roles } from './decorators';
 import {
   AuthResponseDto,
+  DeleteAccountDto,
   RegisterDto,
   SendOtpDto,
   SessionDto,
@@ -346,6 +347,32 @@ export class AuthUserController {
     @Param('deviceId') targetDeviceId: string,
   ) {
     return this.authService.revokeSession(user.userId, targetDeviceId, user.deviceId);
+  }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Delete own account',
+    description:
+      "Permanently deletes (soft-delete) the authenticated user's account and revokes all active sessions.\n\n" +
+      '**3-step verification flow:**\n' +
+      '1. `POST /auth/send-otp` — identifier + purpose `ACCOUNT_DELETE_VERIFICATION`\n' +
+      '2. `POST /auth/verify-otp` — submit the OTP to receive a short-lived `verificationToken`\n' +
+      '3. `DELETE /auth/account` — submit the `verificationToken` (this endpoint)',
+  })
+  @ApiStandardResponse({
+    status: 200,
+    description: 'Account deleted successfully',
+    type: AuthResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized or invalid access token' })
+  @ApiBadRequestResponse({ description: 'Invalid or expired verification token' })
+  @ApiNotFoundResponse({ description: 'User account not found' })
+  @ApiTooManyRequestsResponse({ description: 'Too many deletion requests' })
+  @ResponseMessage(RESPONSE_MESSAGES.AUTH.ACCOUNT_DELETED)
+  async deleteAccount(@CurrentUser() user: AuthenticatedUser, @Body() dto: DeleteAccountDto) {
+    return this.authService.deleteAccount(user.userId, dto);
   }
 
   private extractDeviceInfo(req: Request): DeviceInfo {

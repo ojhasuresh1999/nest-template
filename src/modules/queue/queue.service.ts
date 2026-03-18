@@ -11,11 +11,14 @@ export class QueueService implements OnModuleInit {
 
   constructor(
     @InjectQueue(Queues.QUEUE__EMAIL.name) private readonly emailQueue: Queue,
+    @InjectQueue(Queues.QUEUE__LOW_PRIORITY_EMAIL.name)
+    private readonly lowPriorityEmailQueue: Queue,
     @InjectQueue(Queues.QUEUE__SMS.name) private readonly smsQueue: Queue,
     @InjectQueue(Queues.QUEUE__NOTIFICATION.name) private readonly notificationQueue: Queue,
   ) {
     // Map queue names to queue instances for dynamic access
     this.queues.set(Queues.QUEUE__EMAIL.name, this.emailQueue);
+    this.queues.set(Queues.QUEUE__LOW_PRIORITY_EMAIL.name, this.lowPriorityEmailQueue);
     this.queues.set(Queues.QUEUE__SMS.name, this.smsQueue);
     this.queues.set(Queues.QUEUE__NOTIFICATION.name, this.notificationQueue);
   }

@@ -315,7 +315,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         email: payload.email,
         deviceId: payload.deviceId,
         role: payload.role,
-        brand: payload.brand,
       };
     } catch (error) {
       this.logger.error(`Socket authentication failed: ${error.message}`);

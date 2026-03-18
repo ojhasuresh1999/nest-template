@@ -10,6 +10,7 @@ import type {
   SendOtpDto,
   SendPushDto,
   SendInAppDto,
+  SendPromotionalEmailDto,
 } from './dto';
 
 // ============================================================================
@@ -24,10 +25,13 @@ export type JobPayloadMap = {
   QUEUE__EMAIL: {
     SEND_EMAIL: SendEmailDto;
     SEND_BULK_EMAIL: SendBulkEmailDto;
-    SEND_WELCOME_EMAIL: SendWelcomeEmailDto;
     SEND_PASSWORD_RESET: SendPasswordResetDto;
     SEND_EMAIL_VERIFICATION: SendEmailVerificationDto;
     SEND_OTP_EMAIL: SendOtpEmailDto;
+  };
+  QUEUE__LOW_PRIORITY_EMAIL: {
+    SEND_WELCOME_EMAIL: SendWelcomeEmailDto;
+    SEND_PROMOTIONAL_EMAIL: SendPromotionalEmailDto;
   };
   QUEUE__SMS: {
     SEND_SMS: SendSmsDto;
@@ -126,7 +130,12 @@ export interface JobInfo {
  * Type guard to check if a value is a valid queue key
  */
 export function isValidQueueKey(key: string): key is keyof JobPayloadMap {
-  return ['QUEUE__EMAIL', 'QUEUE__SMS', 'QUEUE__NOTIFICATION'].includes(key);
+  return [
+    'QUEUE__EMAIL',
+    'QUEUE__LOW_PRIORITY_EMAIL',
+    'QUEUE__SMS',
+    'QUEUE__NOTIFICATION',
+  ].includes(key);
 }
 
 /**

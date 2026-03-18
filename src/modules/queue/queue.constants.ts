@@ -7,11 +7,10 @@ import type { DefaultJobOptions } from 'bullmq';
 export const Queues = {
   QUEUE__EMAIL: {
     name: 'email-queue',
-    description: 'Queue for email operations',
+    description: 'Queue for critical transactional emails (OTP, password reset, verification)',
     jobs: {
       SEND_EMAIL: { name: 'send:email' },
       SEND_BULK_EMAIL: { name: 'send:bulk-email' },
-      SEND_WELCOME_EMAIL: { name: 'send:welcome-email' },
       SEND_PASSWORD_RESET: { name: 'send:password-reset' },
       SEND_EMAIL_VERIFICATION: { name: 'send:email-verification' },
       SEND_OTP_EMAIL: { name: 'send:otp-email' },
@@ -21,6 +20,22 @@ export const Queues = {
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: { count: 100 },
+        removeOnFail: false,
+      } satisfies DefaultJobOptions,
+    },
+  },
+  QUEUE__LOW_PRIORITY_EMAIL: {
+    name: 'low-priority-email-queue',
+    description: 'Queue for non-critical emails (welcome, promotional, newsletters)',
+    jobs: {
+      SEND_WELCOME_EMAIL: { name: 'send:welcome-email' },
+      SEND_PROMOTIONAL_EMAIL: { name: 'send:promotional-email' },
+    },
+    options: {
+      defaultJobOptions: {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: { count: 500 },
         removeOnFail: false,
       } satisfies DefaultJobOptions,
     },
